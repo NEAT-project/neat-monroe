@@ -1,0 +1,16 @@
+[Unit]                                                                                                             
+Description=Nornet LXC container network manager
+After=network.target
+
+[Service]
+ExecStart=/usr/sbin/nne-lxc-network-manager
+Type=simple
+Restart=on-failure
+
+# 'sshd -D' leaks stderr and confuses things in conjunction with 'console log'
+StandardError=syslog
+StandardOutput=syslog
+
+[Install]
+WantedBy=multi-user.target
+

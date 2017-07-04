@@ -1,0 +1,5 @@
+#!/bin/bash
+
+systemctl daemon-reload
+systemctl enable nne-lxc-network-manager
+systemctl restart nne-lxc-network-manager

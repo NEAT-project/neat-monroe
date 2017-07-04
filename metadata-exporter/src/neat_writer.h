@@ -1,0 +1,53 @@
+#include <string>
+#include <jsoncpp/json/json.h>
+
+#include "mqloop.h"
+
+#define ZMQ_TOPIC_MODEM "MONROE.META.DEVICE.MODEM"
+
+struct neat_event {
+  std::string iccid;
+  std::string ifname;
+  uint64_t tstamp;
+  std::string ip_addr;
+  uint8_t device_mode;
+  uint8_t device_submode;
+  int8_t rssi;
+  int16_t rscp;
+  int8_t ecio;
+  int8_t lte_rssi;
+  int16_t lte_rsrp;
+  int8_t lte_rsrq;
+  uint16_t lac;
+  int32_t cid;
+  uint32_t nw_mccmnc;
+  uint32_t imsi_mccmnc;
+  uint8_t device_state;
+};
+
+class neat_writer
+{
+  private:
+    std::string cib_socket;
+    std::string cib_prefix;
+    std::string cib_extension;
+    mqloop& loop;
+    zmq::socket_t subscriber;
+
+    void add_property(Json::Value *root, const char *key,
+                      const Json::Value& value, uint8_t precedence) const;
+
+    neat_event parse_zmq_message(const std::string& message) const;
+    std::string form_neat_message(const neat_event& event) const;
+    void notify_policy_manager(const std::string& message) const;
+    void dump_cib_file(const std::string& uid, const std::string& message) const;
+
+    bool handle_message();
+
+  public:
+    neat_writer(mqloop& loop);
+    ~neat_writer();
+
+    void set_cib_socket(const std::string& name);
+    void set_cib_file(const std::string& prefix, const std::string& extension);
+};

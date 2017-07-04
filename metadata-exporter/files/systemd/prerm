@@ -1,0 +1,4 @@
+#!/bin/bash
+
+systemctl stop nne-lxc-network-manager
+systemctl disable nne-lxc-network-manager

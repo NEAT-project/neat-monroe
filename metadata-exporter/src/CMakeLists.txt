@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 2.6)
-project(neat-metadata-exporter)
+project(metadata-exporter)
 
 add_definitions("-std=c++11 -Wall")
 
 set(SRC_LIST main.cpp mqdaemon.cpp mqloop.cpp neat_writer.cpp)
 set(LIB_LIST zmq jsoncpp)
-add_executable(neat-metadata-exporter ${SRC_LIST})
-target_link_libraries(neat-metadata-exporter ${LIB_LIST})
+add_executable(metadata-exporter ${SRC_LIST})
+target_link_libraries(metadata-exporter ${LIB_LIST})
 
 add_executable(clock-info clock_info.cpp)
 

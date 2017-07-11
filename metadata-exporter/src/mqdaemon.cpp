@@ -36,17 +36,23 @@ mqdaemon::~mqdaemon()
 bool mqdaemon::handle_signal()
 {
   bool result = true;
+
   struct signalfd_siginfo fdsi;
-  //TODO Check size returned by read
-  /*ssize_t s =*/ read(sfd, &fdsi, sizeof(struct signalfd_siginfo));
-  if (fdsi.ssi_signo == SIGINT) {
-    std::cerr << "Got SIGINT" << std::endl;
-    result = false;
-  } else if (fdsi.ssi_signo == SIGTERM) {
-    std::cerr << "Got SIGTERM" << std::endl;
-    result = false;
-  } else {
-    std::cerr << "Read unexpected signal" << std::endl;
+  ssize_t s = read(sfd, &fdsi, sizeof(struct signalfd_siginfo));
+  if (s == sizeof(struct signalfd_siginfo)) {
+    if (fdsi.ssi_signo == SIGINT) {
+      std::cerr << "SIGINT" << std::endl;
+      result = false;
+    } else if (fdsi.ssi_signo == SIGTERM) {
+      std::cerr << "SIGTERM" << std::endl;
+      result = false;
+    } else {
+      std::cerr << "Unexpected signal" << std::endl;
+    }
   }
+  else {
+    std::cerr << "Failed to read signal info" << std::endl;
+  }
+
   return result;
 }

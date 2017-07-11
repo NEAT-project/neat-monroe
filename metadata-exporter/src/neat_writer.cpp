@@ -158,38 +158,6 @@ void neat_writer::dump_cib_file(const std::string& uid, const std::string& messa
     ofs << message;
 }
 
-neat_writer::neat_writer(mqloop& loop)
-  : loop(loop), subscriber(loop.get_zmq_context(), ZMQ_SUB)
-{
-  //cib_socket = std::string("/monroe/cib/neat_cib_socket");
-  //cib_prefix = std::string("/monroe/cib/");
-  //cib_extension = std::string(".cib");
-
-  //zmq::context_t context(1);
-  //zmq::socket_t subscriber(context, ZMQ_SUB);
-
-  //TODO get bind address and topic form outside 
-  subscriber.connect("tcp://172.17.0.1:5556");
-  subscriber.setsockopt(ZMQ_SUBSCRIBE, ZMQ_TOPIC_MODEM, strlen(ZMQ_TOPIC_MODEM));
-  loop.register_socket(&subscriber, std::bind(&neat_writer::handle_message, this));
-}
-
-neat_writer::~neat_writer()
-{
-  loop.unregister_socket(&subscriber);
-  subscriber.close();
-}
-
-void neat_writer::set_cib_socket(const std::string& name)
-{
-  cib_socket = name;
-}
-void neat_writer::set_cib_file(const std::string& prefix, const std::string& extension)
-{
-  cib_prefix = prefix;
-  cib_extension = extension;
-}
-
 bool neat_writer::handle_message()
 {
   zmq::message_t msg;
@@ -204,9 +172,35 @@ bool neat_writer::handle_message()
 
   neat_event ev = parse_zmq_message(body);
   std::string message = form_neat_message(ev);
-  std::cerr << message;
+  //std::cerr << message;
   notify_policy_manager(message);
   dump_cib_file(ev.ifname, message);
   
   return true;
+}
+
+neat_writer::neat_writer(mqloop& loop, const std::string& zmq_topic, const std::string& zmq_addr)
+  : zmq_topic(zmq_topic), zmq_addr(zmq_addr), loop(loop),
+    subscriber(loop.get_zmq_context(), ZMQ_SUB)
+{
+  subscriber.connect(zmq_addr);
+  subscriber.setsockopt(ZMQ_SUBSCRIBE, zmq_topic.data(), zmq_topic.length());
+  loop.register_socket(&subscriber, std::bind(&neat_writer::handle_message, this));
+}
+
+neat_writer::~neat_writer()
+{
+  loop.unregister_socket(&subscriber);
+  subscriber.close();
+}
+
+void neat_writer::set_cib_socket(const std::string& name)
+{
+  cib_socket = name;
+}
+
+void neat_writer::set_cib_file(const std::string& prefix, const std::string& extension)
+{
+  cib_prefix = prefix;
+  cib_extension = extension;
 }

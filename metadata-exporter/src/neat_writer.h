@@ -3,8 +3,6 @@
 
 #include "mqloop.h"
 
-#define ZMQ_TOPIC_MODEM "MONROE.META.DEVICE.MODEM"
-
 struct neat_event {
   std::string iccid;
   std::string ifname;
@@ -31,6 +29,8 @@ class neat_writer
     std::string cib_socket;
     std::string cib_prefix;
     std::string cib_extension;
+    std::string zmq_topic;
+    std::string zmq_addr;
     mqloop& loop;
     zmq::socket_t subscriber;
 
@@ -45,7 +45,7 @@ class neat_writer
     bool handle_message();
 
   public:
-    neat_writer(mqloop& loop);
+    neat_writer(mqloop& loop, const std::string& zmq_topic, const std::string& zmq_addr);
     ~neat_writer();
 
     void set_cib_socket(const std::string& name);

@@ -3,13 +3,15 @@
 #include "mqdaemon.h"
 #include "neat_writer.h"
 
-#define APP_NAME "metadata-exporter"
-#define APP_VERSION "1.0.1"
+#ifndef APP_VERSION
+  #define APP_VERSION "0.0.0"
+#endif
+
 #define ZMQ_TOPIC "MONROE.META.DEVICE.MODEM"
 #define ZMQ_ADDR "tcp://172.17.0.1:5556"
 
-const char *help_string = 
-  "metadata-exporter [--cib-socket|-s SOCKET] [--cib-prefix|-p PREFIX [--cib-extension|-e EXTENSION] ]\n"
+const char *help_string =
+  " [--cib-socket|-s SOCKET] [--cib-prefix|-p PREFIX [--cib-extension|-e EXTENSION] ]\n"
   "                  [--help|-h] [--versoin|-v]\n"
   "\n"
   "  --cib-socket|-s SOCKET\n"
@@ -25,8 +27,6 @@ const char *help_string =
 
 int main(int argc, char **argv)
 {
-  mqdaemon daemon(APP_NAME, APP_VERSION);
-  
   std::string cib_socket;
   std::string cib_prefix;
   std::string cib_extension = ".cib";
@@ -62,12 +62,12 @@ int main(int argc, char **argv)
         break;
 
       case 'h':
-        std::cerr << help_string << std::endl;
-        break;
+        std::cerr << std::endl << argv[0] << help_string << std::endl;
+        return 0;
 
       case 'v':
-        std::cerr << APP_NAME << " " << APP_VERSION << std::endl;
-        break;
+        std::cerr << std::endl << argv[0] << " " << APP_VERSION << std::endl << std::endl;
+        return 0;
 
       case '?':
       default:
@@ -76,9 +76,11 @@ int main(int argc, char **argv)
   }
 
   if (optind < argc) {
-    std::cerr << APP_NAME << ": too many arguments" << std::endl;
+    std::cerr << argv[0] << ": too many arguments" << std::endl;
     return -1;
   }
+
+  mqdaemon daemon(argv[0], APP_VERSION);
 
   std::cerr << "zmq-addr: " << ZMQ_ADDR << std::endl;
   std::cerr << "zmq-topic: " << ZMQ_TOPIC << std::endl;

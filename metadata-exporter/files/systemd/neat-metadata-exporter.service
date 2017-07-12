@@ -1,13 +1,12 @@
 [Unit]                                                                                                             
-Description=Nornet LXC container network manager
+Description=NEAT metadata exporter
 After=network.target
 
 [Service]
-ExecStart=/usr/sbin/nne-lxc-network-manager
+ExecStart=/usr/sbin/neat-metadata-exporter
 Type=simple
 Restart=on-failure
 
-# 'sshd -D' leaks stderr and confuses things in conjunction with 'console log'
 StandardError=syslog
 StandardOutput=syslog
 

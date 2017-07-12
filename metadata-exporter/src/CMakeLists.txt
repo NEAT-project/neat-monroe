@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.6)
 project(neat-metadata-exporter)
 
-set(APP_VERSION "1.0.2")
+set(APP_VERSION "1.0.3")
 
 add_definitions("-std=c++11 -Wall")
 add_definitions("-DAPP_VERSION=\"${APP_VERSION}\"")

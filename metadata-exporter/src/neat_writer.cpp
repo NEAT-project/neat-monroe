@@ -61,7 +61,13 @@ neat_event neat_writer::parse_zmq_message(const std::string& message) const
   struct neat_event ev;
 
   ev.iccid = root.get("ICCID", "").asString();
-  ev.ifname = root.get("InterfaceName", "").asString();
+
+  if (root.isMember("InternalInterface")) {
+    ev.ifname = root.get("InternalInterface", "").asString();
+  } else {
+    ev.ifname = root.get("InterfaceName", "").asString();
+  }
+
   ev.tstamp = root.get("Timestamp", 0).asUInt64();
   ev.ip_addr = root.get("IPAddress", "").asString();
   ev.device_mode = root.get("DeviceMode", 0).asUInt();

@@ -189,7 +189,7 @@ neat_writer::neat_writer(mqloop& loop, const std::string& zmq_topic, const std::
   : zmq_topic(zmq_topic), zmq_addr(zmq_addr), loop(loop),
     subscriber(loop.get_zmq_context(), ZMQ_SUB)
 {
-  subscriber.connect(zmq_addr);
+  subscriber.connect(zmq_addr.c_str());
   subscriber.setsockopt(ZMQ_SUBSCRIBE, zmq_topic.data(), zmq_topic.length());
   loop.register_socket(&subscriber, std::bind(&neat_writer::handle_message, this));
 }

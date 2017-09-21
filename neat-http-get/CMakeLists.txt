@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 2.6)
-project(client-http-get)
+project(neat-http-get)
 
-set(SRC_LIST client_http_get.c util.c)
+set(SRC_LIST neat_http_get.c util.c)
 set(LIB_LIST neat uv)
-add_executable(client_http_get ${SRC_LIST})
-target_link_libraries(client_http_get ${LIB_LIST})
+add_executable(neat_http_get ${SRC_LIST})
+target_link_libraries(neat_http_get ${LIB_LIST})
 
-install(TARGETS client_http_get RUNTIME DESTINATION /usr/bin)
+install(TARGETS neat_http_get RUNTIME DESTINATION /usr/bin)
 
 set(CPACK_GENERATOR "DEB")
 set(CPACK_PACKAGE_NAME ${PROJECT_NAME})

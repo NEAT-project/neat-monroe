@@ -10,7 +10,7 @@ neat-metadata-exporter --cib-socket /var/run/neat/neat_cib_socket &
 
 # Run experiment
 
-CMD="/opt/celerway/neat/build/examples/client_http_get -v 1 celerway.com"
+CMD="/usr/bin/neat_http_get -v 1 celerway.com"
 
 while true; do
 

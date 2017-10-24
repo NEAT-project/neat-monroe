@@ -22,7 +22,7 @@ neat_error_code on_writable(struct neat_flow_operations *op)
   static char request[512];
   neat_error_code err = NEAT_OK;
   
-  snprintf(request, sizeof(request), "GET %s HTTP/1.1\r\nHost: %s\r\nUser-agent: pmtest\r\nConnection: close\r\n\r\n", "/", "celerway.com");
+  snprintf(request, sizeof(request), "GET %s HTTP/1.1\r\nHost: %s\r\nUser-agent: curl\r\nConnection: close\r\n\r\n", "/", "www.multipath-tcp.org");
 
   fprintf(stderr, "INFO: on_writable\n");
 
@@ -57,9 +57,12 @@ neat_error_code on_readable(struct neat_flow_operations *op)
   }
 
   fprintf(stderr, "INFO: on_readable - received %d bytes\n", bytes_read);
-  //if (bytes_read > 0) {
-  //  fwrite(buffer, sizeof(char), bytes_read, stdout);
-  //}
+  if (bytes_read > 0) {
+    buffer[bytes_read] = 0;
+    fprintf(stderr, "%s\n", buffer);
+
+//    fwrite(buffer, sizeof(char), bytes_read, stdout);
+  }
 
   return NEAT_OK;
 }
@@ -69,12 +72,13 @@ neat_error_code on_connected(struct neat_flow_operations *op)
   neat_error_code err = NEAT_OK;
   char buff[128];
   size_t buff_size = 128;
-  err = neat_get_property(op->ctx, op->flow, "interface", buff, &buff_size);
-  if (err == NEAT_OK) {
-    fprintf(stderr, "INFO: on_connected invoked! interface: %s\n", buff);
-  } else {
-    fprintf(stderr, "INFO: on_connected invoked! WARINING Can't query interface porperty\n");
-  }
+  //err = neat_get_property(op->ctx, op->flow, "interface", buff, &buff_size);
+  //if (err == NEAT_OK) {
+  //  fprintf(stderr, "INFO: on_connected invoked! interface: %s\n", buff);
+  //} else {
+  //  fprintf(stderr, "INFO: on_connected invoked! WARINING Can't query interface porperty\n");
+  //}
+  fprintf(stderr, "INFO: on_connected invoked!\n");
   
   op->on_readable = on_readable;
   op->on_writable = on_writable;
@@ -122,7 +126,8 @@ const char *flow_property = "\
     }\
 }";
 
-const char *dst_host = "celerway.com";
+//const char *dst_host = "celerway.com";
+const char *dst_host = "www.multipath-tcp.org";
 const uint16_t dst_port = 80;
 
 int run(const char *properties)

@@ -1,0 +1,6 @@
+{
+  "transport": [
+     {"value": "TCP", "precedence": 1}
+    ],
+  "multihoming": {"value": true, "precedence": 1}
+}

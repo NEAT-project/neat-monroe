@@ -1,0 +1,6 @@
+{
+  "transport": [
+     {"value": "MPTCP", "precedence": 1}
+    ],
+  "multihoming": {"value": true, "precedence": 1}
+}

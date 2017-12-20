@@ -377,21 +377,35 @@ error:
 //#include <netinet/in.h>
 //#include <arpa/inet.h>
 void
-flow_get_addr(struct neat_flow_operations *ops, char *addr_buf, int addr_buf_len, int local)
+flow_get_addr(struct neat_flow_operations *ops, char *ipaddr_buf, int ipaddr_buf_len, uint16_t *port, int local)
 {
   struct sockaddr* addrs = NULL;
   struct sockaddr_in* addr = NULL;
   int n = neat_getlpaddrs(ops->ctx, ops->flow, &addrs, local);
   if (n > 0) {
     addr = (struct sockaddr_in*)&addrs[0];
-    snprintf(addr_buf, addr_buf_len, "%s:%d", inet_ntoa(addr->sin_addr), addr->sin_port);
+    snprintf(ipaddr_buf, ipaddr_buf_len, "%s", inet_ntoa(addr->sin_addr));
+    *port = ntohs(addr->sin_port);
   } else {
-    snprintf(addr_buf, addr_buf_len, "?:?");
+    snprintf(ipaddr_buf, ipaddr_buf_len, "?");
+    *port = 0;
   }
 
   if (addrs) {
     free(addrs);
   }
+}
+
+void
+log_addr(struct neat_flow_operations *ops, const char *prefix) 
+{
+  char local_ipaddr[32], remote_ipaddr[32];
+  uint16_t local_port, remote_port;
+
+  flow_get_addr(ops, local_ipaddr, 32, &local_port, 1);
+  flow_get_addr(ops, remote_ipaddr, 32, &remote_port, 0);
+  fprintf(stderr, "INFO: %s [local: %s:%d remote: %s:%d ]\n", prefix,
+    local_ipaddr, local_port, remote_ipaddr, remote_port);
 }
 
 /*-------------------------------------------------------------------------------------------------------------------*/
@@ -406,17 +420,15 @@ on_tproxy_connected(struct neat_flow_operations *tproxy_ops)
   struct neat_flow *orig_dst_flow = NULL;
   struct neat_flow_operations orig_dst_ops;
   struct flow_info *orig_dst_info = NULL;
-
-  char local_addr[32], remote_addr[32];
+  char orig_dst_ipaddr[32];
+  uint16_t orig_dst_port;
 
   const char *properties = "{\
     \"transport\": {\"value\": \"TCP\", \"precedence\": 2},\
     \"multihoming\": {\"value\": false, \"precedence\": 2}\
     }";
   
-  flow_get_addr(tproxy_ops, local_addr, 32, 1);
-  flow_get_addr(tproxy_ops, remote_addr, 32, 0);
-  fprintf(stderr, "INFO: %s [ %s -> %s ]\n", __FUNCTION__, remote_addr, local_addr);
+  log_addr(tproxy_ops, __FUNCTION__);
 
   orig_dst_info = flow_info_alloc(tproxy_ops);
   if (!orig_dst_info) {
@@ -448,7 +460,10 @@ on_tproxy_connected(struct neat_flow_operations *tproxy_ops)
     goto error;
   }
 
-  err = neat_open(ctx, orig_dst_flow, "wp.pl", 80, NULL, 0);
+  flow_get_addr(tproxy_ops, orig_dst_ipaddr, 32, &orig_dst_port, 1);
+  fprintf(stderr, "INFO: %s - connecting to %s:%d\n", __FUNCTION__, orig_dst_ipaddr, orig_dst_port);
+
+  err = neat_open(ctx, orig_dst_flow, orig_dst_ipaddr, orig_dst_port, NULL, 0);
   if (err != NEAT_OK) {
     fprintf(stderr, "ERROR: %s - orig_dst neat_open failed\n", __FUNCTION__);
     goto error;
@@ -480,12 +495,9 @@ on_orig_dst_connected(struct neat_flow_operations *orig_dst_ops)
   neat_error_code err = NEAT_OK;
   struct neat_flow_operations *tproxy_ops = NULL;
   struct flow_info *tproxy_info = NULL;
-  char local_addr[32], remote_addr[32];
 
-  flow_get_addr(orig_dst_ops, local_addr, 32, 1);
-  flow_get_addr(orig_dst_ops, remote_addr, 32, 0);
-  fprintf(stderr, "INFO: %s [ %s -> %s ]\n", __FUNCTION__, local_addr, remote_addr);
-
+  log_addr(orig_dst_ops, __FUNCTION__);
+  
   tproxy_info = flow_info_alloc(orig_dst_ops);
   if (!tproxy_info) {
     fprintf(stderr, "ERROR: %s - flow_info_alloc failed\n", __FUNCTION__);
@@ -526,12 +538,7 @@ on_readable(struct neat_flow_operations *ops)
   struct flow_info *fi = NULL;
   struct flow_info *peer_fi = NULL;
 
-  char local_addr[32], remote_addr[32];
-
-  flow_get_addr(ops, local_addr, 32, 1);
-  flow_get_addr(ops, remote_addr, 32, 0);
-  fprintf(stderr, "INFO: %s [ %s -> %s ]\n", __FUNCTION__, remote_addr, local_addr);
-  
+  log_addr(ops, __FUNCTION__);
 //  proxy = 
 //  peer = (struct flow_info *)((struct flow_info *)ops->userData)->ops->userData;
 
@@ -576,12 +583,8 @@ on_writable(struct neat_flow_operations *ops)
   neat_error_code err = NEAT_OK;
   struct flow_info *fi = NULL;
 
-  char local_addr[32], remote_addr[32];
+  log_addr(ops, __FUNCTION__);
 
-  flow_get_addr(ops, local_addr, 32, 1);
-  flow_get_addr(ops, remote_addr, 32, 0);
-  fprintf(stderr, "INFO: %s [ %s -> %s ]\n", __FUNCTION__, local_addr, remote_addr);
- 
   fi = (struct flow_info *)ops->userData;
   err = neat_write(ops->ctx, ops->flow, fi->buffer, fi->num_of_bytes, NULL, 0);
   if (err != NEAT_OK) {
@@ -609,11 +612,7 @@ on_all_written(struct neat_flow_operations *ops)
   neat_error_code err = NEAT_OK;
   struct flow_info *fi = NULL;
   
-  char local_addr[32], remote_addr[32];
-
-  flow_get_addr(ops, local_addr, 32, 1);
-  flow_get_addr(ops, remote_addr, 32, 0);
-  fprintf(stderr, "INFO: %s [ %s -> %s ]\n", __FUNCTION__, local_addr, remote_addr);
+  log_addr(ops, __FUNCTION__);
 
   ops->on_all_written = NULL;
   err = neat_set_operations(ops->ctx, ops->flow, ops);
@@ -654,11 +653,7 @@ on_timeout(struct neat_flow_operations *ops)
 static neat_error_code
 on_close(struct neat_flow_operations *ops)
 {
-  char /*local_addr[32],*/ remote_addr[32];
-
-  //flow_get_addr(orig_dst_ops, local_addr, 32, 1);
-  flow_get_addr(ops, remote_addr, 32, 0);
-  fprintf(stderr, "INFO: %s [ %s ]\n", __FUNCTION__, remote_addr);
+  log_addr(ops, __FUNCTION__);
   return NEAT_OK;
 }
 
@@ -698,7 +693,7 @@ int main(int argc, char *argv[])
   ops.on_error = on_error;
   neat_set_operations(ctx, flow, &ops);
 
-  err = neat_accept(ctx, flow, 5000, NULL, 0);
+  err = neat_accept(ctx, flow, 9876, NULL, 0);
   if (err != NEAT_OK) {
     fprintf(stderr, "ERROR: neat_new_flow failed");
     goto cleanup;

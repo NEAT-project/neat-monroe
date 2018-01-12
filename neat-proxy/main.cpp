@@ -16,6 +16,7 @@ static neat_error_code on_all_written(struct neat_flow_operations *ops);
 static neat_error_code on_close(struct neat_flow_operations *ops);
 static neat_error_code on_aborted(struct neat_flow_operations *ops);
 static neat_error_code on_timeout(struct neat_flow_operations *ops);
+static neat_error_code on_tproxy_error(struct neat_flow_operations *ops);
 static neat_error_code on_error(struct neat_flow_operations *ops);
 
 
@@ -168,6 +169,7 @@ on_tproxy_connected(struct neat_flow_operations *tproxy_ops)
   tproxy_ops->on_close = on_close;
   tproxy_ops->on_aborted = on_aborted;
   tproxy_ops->on_timeout = on_timeout;
+  tproxy_ops->on_error = on_error;
   err = neat_set_operations(ctx, tproxy_ops->flow, tproxy_ops);
   if (err != NEAT_OK) {
     fprintf(stderr, "ERROR: %s - tproxy neat_set_operations failed\n", __FUNCTION__);
@@ -354,7 +356,26 @@ on_timeout(struct neat_flow_operations *ops)
 static neat_error_code
 on_close(struct neat_flow_operations *ops)
 {
+  struct flow_info *fi = NULL;
+
   log_addr(ops, __FUNCTION__);
+
+  // Close peer flow and free flow info memory
+  if (fi) {
+    fi = (struct flow_info *)ops->userData;
+    neat_close(fi->peer_ops->ctx, fi->peer_ops->flow);
+    free(fi->buffer);
+    free(fi);
+  }
+
+  return NEAT_OK;
+}
+
+static neat_error_code
+on_tproxy_error(struct neat_flow_operations *ops)
+{
+  fprintf(stderr, "INFO: %s\n", __FUNCTION__);
+  neat_stop_event_loop(ops->ctx);
   return NEAT_OK;
 }
 
@@ -363,7 +384,8 @@ on_error(struct neat_flow_operations *ops)
 {
   //fprintf(stderr, "INFO: %s\n", __FUNCTION__);
   log_addr(ops, __FUNCTION__);
-  neat_stop_event_loop(ops->ctx);
+  //neat_stop_event_loop(ops->ctx);
+  neat_close(ops->ctx, ops->flow);
   return NEAT_OK;
 }
 
@@ -392,7 +414,7 @@ int main(int argc, char *argv[])
 
   memset(&ops, 0, sizeof(ops));
   ops.on_connected = on_tproxy_connected;
-  ops.on_error = on_error;
+  ops.on_error = on_tproxy_error;
   neat_set_operations(ctx, flow, &ops);
 
   err = neat_accept(ctx, flow, 9876, NULL, 0);

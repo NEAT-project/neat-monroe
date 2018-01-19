@@ -1,0 +1,34 @@
+FROM monroe/base
+
+MAINTAINER tomasz.rozensztrauch@radytek.com
+
+# Build and install NEAT library
+
+RUN apt-get update && \
+    apt-get install -y git build-essential cmake \
+        libuv1-dev libldns-dev libjansson-dev libmnl-dev libsctp-dev && \
+    mkdir -p /opt/celerway && \
+    cd /opt/celerway && \
+    git clone https://github.com/NEAT-project/neat.git && \
+    cd neat/ && \
+    mkdir build && \
+    cd build/ && \
+    cmake .. && \
+    make && \ 
+    make install && \
+    cd ../ && \
+    rm -Rf build && \
+    apt-get purge -y git build-essential cmake \
+        libuv1-dev libldns-dev libmnl-dev libjansson-dev libsctp-dev && \
+    apt-get autoremove -y && \
+    apt-get install -y libuv1 libldns2 libmnl0 libjansson4 libsctp1 && \
+    apt-get clean
+
+# Copy files and create neat-proxy entry point
+
+COPY files/* /opt/celerway/
+WORKDIR /opt/celerway
+RUN dpkg -i neat-proxy_1.0.2_amd64.deb
+
+ENTRYPOINT ["dumb-init", "--", "/usr/local/bin/neat-proxy"]
+

@@ -1,0 +1,75 @@
+FROM monroe/base
+
+MAINTAINER tomasz.rozensztrauch@radytek.com
+
+RUN echo "deb http://ftp.debian.org/debian jessie-backports main" >> /etc/apt/sources.list
+
+RUN apt-get update && apt-get install -y \
+    git \
+    time \
+    build-essential \
+    cmake \
+    libuv1-dev \
+    libldns-dev \
+    libjansson-dev \
+    libmnl-dev \
+    libsctp-dev \
+    libssl-dev \
+    zlib1g-dev \
+    libbz2-dev \
+    libreadline-dev \
+    libsqlite3-dev \
+    llvm \
+    libncurses5-dev \
+    libncursesw5-dev \
+    xz-utils \
+    tk-dev \
+    && apt-get clean
+
+
+# Build and install python 3.5
+
+WORKDIR /opt/celerway
+RUN wget https://www.python.org/ftp/python/3.5.2/Python-3.5.2.tgz
+RUN tar xvf Python-3.5.2.tgz
+RUN cd Python-3.5.2 && ./configure --enable-optimizations && make -j8 && make altinstall
+
+
+# Install python packages required by policy manager:
+
+RUN pip3.5 install netifaces && pip3.5 install aiohttp
+
+
+# Build and install NEAT library
+
+WORKDIR /opt/celerway
+RUN git clone https://github.com/NEAT-project/neat.git \
+    && cd neat/ \
+    && mkdir build \
+    && cd build/ \
+    && git checkout 5bb5a059f67b29749004c50b4c6b6e88dd551a34 \
+    && cmake .. \
+    && make \
+    && make install
+
+# Build and install neat-metadata-exporter
+
+RUN apt-get update && apt-get install -y \
+  libzmq3-dev \
+  libjsoncpp-dev \
+  && apt-get clean
+
+WORKDIR /opt/celerway
+RUN git clone https://github.com/NEAT-project/neat-monroe.git
+WORKDIR /opt/celerway/neat-monroe/metadata-exporter/src/build
+RUN cmake .. && make && make install
+
+
+# Copy files and create experiment entry point
+
+COPY files/* /opt/celerway/
+WORKDIR /opt/celerway
+RUN dpkg -i neat-http-get_1.0.0_amd64.deb
+
+
+ENTRYPOINT ["dumb-init", "--", "/bin/bash", "/opt/celerway/neat_experiment.sh"]

@@ -2,54 +2,27 @@ FROM monroe/base
 
 MAINTAINER tomasz.rozensztrauch@radytek.com
 
-RUN echo "deb http://ftp.debian.org/debian jessie-backports main" >> /etc/apt/sources.list && \
-    rm /etc/apt/sources.list.d/*
-
-#RUN apt-get update \
-#    && apt-get install -y build-essential cmake \
-#    && apt-get purge -y build-essential cmake \
-#    && apt-get autoremove -y \
-#    && apt-get clean
-
-# Build and install python 3.5
-
-RUN apt-get update && \
-    apt-get install -y -t jessie-backports build-essential libssl-dev zlib1g-dev libbz2-dev libsqlite3-dev && \
-    cd /root/ && \
-    wget https://www.python.org/ftp/python/3.5.2/Python-3.5.2.tgz && \
-    tar xvf Python-3.5.2.tgz && \
-    cd Python-3.5.2 && \
-    ./configure && \
-    make -j8 && \
-    make altinstall && \
-    cd .. && \
-    rm -Rf Python-3.5.2 && \
-    rm Python-3.5.2.tgz && \
-    apt-get purge -y build-essential libssl-dev zlib1g-dev libbz2-dev libsqlite3-dev && \
-    apt-get autoremove -y && \
-    apt-get clean
-
 # Build and install NEAT library
 
 RUN apt-get update && \
-    apt-get install -y -t jessie-backports git build-essential cmake \
-        libuv1-dev libldns-dev libmnl-dev libjansson-dev libsctp-dev libssl-dev && \
+    apt-get install -y git build-essential cmake \
+        libuv1-dev libldns-dev libjansson-dev libmnl-dev libsctp-dev && \
     mkdir -p /opt/celerway && \
     cd /opt/celerway && \
     git clone https://github.com/NEAT-project/neat.git && \
     cd neat/ && \
     mkdir build && \
     cd build/ && \
-    git checkout 5bb5a059f67b29749004c50b4c6b6e88dd551a34 && \
+#    git checkout 5bb5a059f67b29749004c50b4c6b6e88dd551a34 && \
     cmake .. && \
     make && \ 
     make install && \
     cd ../ && \
     rm -Rf build && \
     apt-get purge -y git build-essential cmake \
-        libuv1-dev libldns-dev libmnl-dev libjansson-dev libsctp-dev libssl-dev && \
+        libuv1-dev libldns-dev libmnl-dev libjansson-dev libsctp-dev && \
     apt-get autoremove -y && \
-    apt-get install -y -t jessie-backports libuv1 libldns1 libmnl0 libjansson4 libsctp1 libssl1.0.0 && \
+    apt-get install -y libuv1 libldns2 libmnl0 libjansson4 libsctp1 && \
     apt-get clean
 
 # Copy files and create experiment entry point

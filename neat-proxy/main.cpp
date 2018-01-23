@@ -348,21 +348,8 @@ on_aborted(struct neat_flow_operations *ops)
 static neat_error_code
 on_timeout(struct neat_flow_operations *ops)
 {
-  struct flow_info *fi = NULL;
-
-  //fprintf(stderr, "INFO: %s\n", __FUNCTION__);
   log_addr(ops, __FUNCTION__);
-  //neat_stop_event_loop(ops->ctx);
   neat_close(ops->ctx, ops->flow);
-
-  // Close peer flow and free flow info memory
-  fi = (struct flow_info *)ops->userData;
-  if (fi) {
-    neat_close(fi->peer_ops->ctx, fi->peer_ops->flow);
-    free(fi->buffer);
-    free(fi);
-  }
-
   return NEAT_OK;
 }
 

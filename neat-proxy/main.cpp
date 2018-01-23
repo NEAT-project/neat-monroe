@@ -407,6 +407,11 @@ int main(int argc, char *argv[])
   struct neat_flow *flow = NULL;
   struct neat_flow_operations ops;
 
+  const char *properties = "{\
+    \"transport\": {\"value\": \"TCP\", \"precedence\": 2},\
+    \"tproxy\": {\"value\": true, \"precedence\": 2}\
+  }";
+
   fprintf(stderr, "INFO: neat-proxy daemon started\n");
 
   ctx = neat_init_ctx();
@@ -420,6 +425,12 @@ int main(int argc, char *argv[])
   flow = neat_new_flow(ctx);
   if (!flow) {
     fprintf(stderr, "ERROR: neat_new_flow failed");
+    goto cleanup;
+  }
+
+  err = neat_set_property(ctx, flow, properties);
+  if (err != NEAT_OK) {
+    fprintf(stderr, "ERROR: %s - neat_set_property failed\n", __FUNCTION__);
     goto cleanup;
   }
 

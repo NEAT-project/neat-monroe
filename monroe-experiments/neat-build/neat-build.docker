@@ -1,0 +1,14 @@
+FROM trozensztrauch/neat-base
+
+MAINTAINER tomasz.rozensztrauch@radytek.com
+
+# Install build environment
+
+RUN apt-get update && \
+    apt-get install -y git build-essential cmake && \
+    apt-get install -y libzmq3-dev libjsoncpp-dev && \
+    apt-get install -y libuv1-dev
+
+COPY files/* /opt/celerway/
+
+CMD ["/opt/celerway/build-package.sh"]

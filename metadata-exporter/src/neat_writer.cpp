@@ -62,11 +62,11 @@ neat_event neat_writer::parse_zmq_message(const std::string& message) const
 
   ev.iccid = root.get("ICCID", "").asString();
 
-  if (root.isMember("InternalInterface")) {
-    ev.ifname = root.get("InternalInterface", "").asString();
-  } else {
+  //if (root.isMember("InternalInterface")) {
+  //  ev.ifname = root.get("InternalInterface", "").asString();
+  //} else {
     ev.ifname = root.get("InterfaceName", "").asString();
-  }
+  //}
 
   ev.tstamp = root.get("Timestamp", 0).asUInt64();
   ev.ip_addr = root.get("IPAddress", "").asString();
@@ -91,10 +91,20 @@ std::string neat_writer::form_neat_message(const neat_event& ev) const
 {
   Json::Value message;
 
-  message["uid"] =  ev.ifname;
-  message["ts"] =  static_cast<Json::Value::UInt64>(ev.tstamp);
-  message["root"] =  true;
+  message["uid"] =  ev.ifname + "_metadata_exporter";
+  //message["ts"] =  static_cast<Json::Value::UInt64>(ev.tstamp);
+  //message["root"] =  true;
+  message["description"] = "Interface's metadata";
   message["priority"] =  4;
+  message["link"] = true;
+
+  //message["match"] = Json::Value(Json::arrayValue);
+  //message["match"].append() ) ["uid"]["value"] = ev.ifname;
+  //Json::Value dict;
+  //dict[]
+
+  message["match"][0]["uid"]["value"] = ev.ifname;
+  
 
   add_property(&message, "interface", ev.ifname, 2);
   add_property(&message, "local_ip", ev.ip_addr, 2);

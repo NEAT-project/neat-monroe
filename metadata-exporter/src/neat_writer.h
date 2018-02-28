@@ -45,6 +45,7 @@ class neat_writer
 
     bool handle_message();
     bool hande_dlb_timer();
+    static size_t handle_curl_data(char *ptr, size_t size, size_t nmemb, void *userdata);
 
   public:
     neat_writer(mqloop& loop, const std::string& zmq_topic, const std::string& zmq_addr);

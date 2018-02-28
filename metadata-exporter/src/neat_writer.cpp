@@ -31,16 +31,15 @@
 #include <getopt.h>
 #include <stdlib.h>
 #include <unistd.h>
-
 #include <stdio.h>
-
 #include <zmq.hpp>
-
+#include <curl/curl.h>
 #include <iostream>
 #include <sstream>
 #include <fstream>
 
 #include "neat_writer.h"
+
 
 void neat_writer::add_property(Json::Value *root, const char *key,
                                const Json::Value& value, uint8_t precedence) const
@@ -195,17 +194,59 @@ bool neat_writer::handle_message()
   return true;
 }
 
+size_t neat_writer::handle_curl_data(char *ptr, size_t size, size_t nmemb, void *userdata)
+{
+  std::string *str = (std::string *)userdata;
+  str->append((const char *)ptr, size * nmemb);
+  return size * nmemb;
+}
+
 bool neat_writer::hande_dlb_timer()
 {
   std::cerr << "neat_writer::hande_dlb_timer" << std::endl;
+  CURL *curl = curl_easy_init();
+  if (curl) {
+    std::string json_str;
+    CURLcode res;
+    curl_easy_setopt(curl, CURLOPT_URL, "http://localhost/dlb.json");
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, handle_curl_data);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&json_str);
+    //curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+
+    res = curl_easy_perform(curl);
+    if(res != CURLE_OK) {
+      std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
+    } else {
+      Json::Reader reader;
+      Json::Value message;
+      reader.parse(json_str, message);
+
+      std::cerr << "------" << std::endl;
+      for (Json::Value::ArrayIndex i = 0; i != message["interfaces"].size(); i++) {
+        std::cerr << "index: " << i << std::endl;
+        std::cerr << "name: " << message["interfaces"][i]["name"] << std::endl;
+        std::cerr << "conn: " << message["interfaces"][i]["conn"] << std::endl;
+        std::cerr << "quality: " << message["interfaces"][i]["quality"] << std::endl;
+        std::cerr << "------" << std::endl;
+        // TODO! build a map name -> (conn, quality); the map will be then used
+        // in form_neat_message to add quality and conn to CIB and we are done
+      }
+
+      Json::StyledWriter writer;
+      std::cerr << writer.write(message) << std::endl;
+    }
+
+    curl_easy_cleanup(curl);
+  }
   return true;
 }
 
 neat_writer::neat_writer(mqloop& loop, const std::string& zmq_topic, const std::string& zmq_addr)
   : zmq_topic(zmq_topic), zmq_addr(zmq_addr), loop(loop),
     subscriber(loop.get_zmq_context(), ZMQ_SUB),
-    dlb_timer(loop, {{5,0},{5,0}}, std::bind(&neat_writer::hande_dlb_timer, this))
+    dlb_timer(loop, {{5,0},{0,500000000}}, std::bind(&neat_writer::hande_dlb_timer, this))
 {
+  curl_global_init(CURL_GLOBAL_DEFAULT);
   subscriber.connect(zmq_addr.c_str());
   subscriber.setsockopt(ZMQ_SUBSCRIBE, zmq_topic.data(), zmq_topic.length());
   loop.register_socket(&subscriber, std::bind(&neat_writer::handle_message, this));
@@ -215,6 +256,7 @@ neat_writer::~neat_writer()
 {
   loop.unregister_socket(&subscriber);
   subscriber.close();
+  curl_global_cleanup();
 }
 
 void neat_writer::set_cib_socket(const std::string& name)

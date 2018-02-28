@@ -195,9 +195,16 @@ bool neat_writer::handle_message()
   return true;
 }
 
+bool neat_writer::hande_dlb_timer()
+{
+  std::cerr << "neat_writer::hande_dlb_timer" << std::endl;
+  return true;
+}
+
 neat_writer::neat_writer(mqloop& loop, const std::string& zmq_topic, const std::string& zmq_addr)
   : zmq_topic(zmq_topic), zmq_addr(zmq_addr), loop(loop),
-    subscriber(loop.get_zmq_context(), ZMQ_SUB)
+    subscriber(loop.get_zmq_context(), ZMQ_SUB),
+    dlb_timer(loop, {{5,0},{5,0}}, std::bind(&neat_writer::hande_dlb_timer, this))
 {
   subscriber.connect(zmq_addr.c_str());
   subscriber.setsockopt(ZMQ_SUBSCRIBE, zmq_topic.data(), zmq_topic.length());

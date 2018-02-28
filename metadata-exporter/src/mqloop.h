@@ -4,6 +4,7 @@
 #include <map>
 #include <functional>
 #include <zmq.hpp>
+#include <sys/timerfd.h>
 
 class mqloop
 {
@@ -24,11 +25,22 @@ public:
   void register_fd(int fd, std::function<bool()> handler);
   void unregister_fd(int fd);
 
-  //TODO register_timer
-  //TODO unregister_timer
-
   // Runs until one of the registered sockets/timers hanlers returns false
   void run();
+};
+
+class mqtimer
+{
+private:
+  mqloop& loop;
+  std::function<bool()> handler;
+  int fd;
+
+  bool handle_timer();
+
+public:
+  mqtimer(mqloop& loop, const itimerspec& spec, std::function<bool()> handler);
+  ~mqtimer();
 };
 
 #endif // CELERWAY_MQLOOP

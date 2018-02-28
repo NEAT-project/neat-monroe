@@ -1,4 +1,5 @@
 #include "mqloop.h"
+#include <unistd.h>
 
 mqloop::mqloop()
   : context(1)
@@ -49,7 +50,7 @@ void mqloop::unregister_fd(int fd)
 void mqloop::run()
 {
   std::vector<zmq::pollitem_t> items;
-  std::vector<std::function<bool()>> handlers;
+  std::vector<std::function<bool()> > handlers;
 
   for(auto const &entry : sockets) {
     zmq::socket_t *socket = entry.first;
@@ -80,4 +81,37 @@ void mqloop::run()
       }
     }
   }
+}
+
+bool mqtimer::handle_timer()
+{
+  uint64_t value = 0;
+  ssize_t len = read(fd, &value, sizeof(value));
+  if (len != sizeof(value)) {
+    throw std::runtime_error("Reading from timer fd failed");
+  }
+
+  return handler();
+}
+
+mqtimer::mqtimer(mqloop& loop, const itimerspec& spec, std::function<bool()> handler)
+  : loop(loop), handler(handler)
+{
+  fd = timerfd_create(CLOCK_MONOTONIC, 0);
+  if (fd < 0) {
+    throw std::runtime_error("Creating timer failed");
+  }
+
+  int err = timerfd_settime(fd, 0, &spec, NULL);
+  if (err != 0) {
+    throw std::runtime_error("Setting up timer failed");
+  }
+
+  loop.register_fd(fd, std::bind(&mqtimer::handle_timer, this));
+}
+
+mqtimer::~mqtimer()
+{
+  loop.unregister_fd(fd);
+  close(fd);
 }

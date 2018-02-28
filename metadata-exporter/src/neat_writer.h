@@ -33,6 +33,7 @@ class neat_writer
     std::string zmq_addr;
     mqloop& loop;
     zmq::socket_t subscriber;
+    mqtimer dlb_timer;
 
     void add_property(Json::Value *root, const char *key,
                       const Json::Value& value, uint8_t precedence) const;
@@ -43,6 +44,7 @@ class neat_writer
     void dump_cib_file(const std::string& uid, const std::string& message) const;
 
     bool handle_message();
+    bool hande_dlb_timer();
 
   public:
     neat_writer(mqloop& loop, const std::string& zmq_topic, const std::string& zmq_addr);

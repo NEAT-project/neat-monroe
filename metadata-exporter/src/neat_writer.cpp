@@ -125,6 +125,12 @@ std::string neat_writer::form_neat_message(const neat_event& ev) const
   add_property(&message, "cid", ev.cid, 2);
   add_property(&message, "oper", ev.nw_mccmnc, 2);
   add_property(&message, "device_state", ev.device_state, 2);
+
+  auto dlb = dlb_info.find(ev.ifname);
+  if(dlb != dlb_info.end()) {
+    add_property(&message, "dlb_conn", dlb->second.conn, 2);
+    add_property(&message, "dlb_quality", dlb->second.quality, 2);
+  }
     
   Json::StyledWriter writer;
   return writer.write(message);
@@ -203,7 +209,7 @@ size_t neat_writer::handle_curl_data(char *ptr, size_t size, size_t nmemb, void 
 
 bool neat_writer::hande_dlb_timer()
 {
-  std::cerr << "neat_writer::hande_dlb_timer" << std::endl;
+  std::cerr << "dlb_timer" << std::endl;
   CURL *curl = curl_easy_init();
   if (curl) {
     std::string json_str;
@@ -223,17 +229,20 @@ bool neat_writer::hande_dlb_timer()
 
       std::cerr << "------" << std::endl;
       for (Json::Value::ArrayIndex i = 0; i != message["interfaces"].size(); i++) {
+        std::string name = message["interfaces"][i]["name"].asString();
+        int conn = message["interfaces"][i]["conn"].asInt();
+        int quality = message["interfaces"][i]["quality"].asInt();
+
         std::cerr << "index: " << i << std::endl;
-        std::cerr << "name: " << message["interfaces"][i]["name"] << std::endl;
-        std::cerr << "conn: " << message["interfaces"][i]["conn"] << std::endl;
-        std::cerr << "quality: " << message["interfaces"][i]["quality"] << std::endl;
+        std::cerr << "name: " << name << std::endl;
+        std::cerr << "conn: " << conn << std::endl;
+        std::cerr << "quality: " << quality << std::endl;
         std::cerr << "------" << std::endl;
-        // TODO! build a map name -> (conn, quality); the map will be then used
-        // in form_neat_message to add quality and conn to CIB and we are done
+        dlb_info[name] = {conn, quality};
       }
 
-      Json::StyledWriter writer;
-      std::cerr << writer.write(message) << std::endl;
+      //Json::StyledWriter writer;
+      //std::cerr << writer.write(message) << std::endl;
     }
 
     curl_easy_cleanup(curl);

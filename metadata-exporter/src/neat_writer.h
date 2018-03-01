@@ -23,6 +23,12 @@ struct neat_event {
   uint8_t device_state;
 };
 
+struct dlb_iface_info
+{
+  int conn;
+  int quality;
+};
+
 class neat_writer
 {
   private:
@@ -34,6 +40,7 @@ class neat_writer
     mqloop& loop;
     zmq::socket_t subscriber;
     mqtimer dlb_timer;
+    std::map<std::string, dlb_iface_info> dlb_info;
 
     void add_property(Json::Value *root, const char *key,
                       const Json::Value& value, uint8_t precedence) const;

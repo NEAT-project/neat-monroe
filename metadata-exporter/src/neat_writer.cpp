@@ -60,6 +60,7 @@ neat_event neat_writer::parse_zmq_message(const std::string& message) const
   struct neat_event ev;
   ev.iccid = root.get("ICCID", "").asString();
   ev.ifname = root.get(ifname_key, "").asString();
+  ev.dlb_ifname = root.get("InterfaceName", "").asString();
   ev.tstamp = root.get("Timestamp", 0).asUInt64();
   ev.ip_addr = root.get("IPAddress", "").asString();
   ev.device_mode = root.get("DeviceMode", 0).asUInt();
@@ -98,8 +99,8 @@ std::string neat_writer::form_neat_message(const neat_event& ev) const
   message["match"][0]["uid"]["value"] = ev.ifname;
   
 
-  add_property(&message, "interface", ev.ifname, 2);
-  add_property(&message, "local_ip", ev.ip_addr, 2);
+  //add_property(&message, "interface", ev.ifname, 2);
+  //add_property(&message, "local_ip", ev.ip_addr, 2);
   add_property(&message, "is_wired", false, 2);
   add_property(&message, "device_mode", ev.device_mode, 2);
   add_property(&message, "device_submode", ev.device_submode, 2);
@@ -119,7 +120,7 @@ std::string neat_writer::form_neat_message(const neat_event& ev) const
   add_property(&message, "oper", ev.nw_mccmnc, 2);
   add_property(&message, "device_state", ev.device_state, 2);
 
-  auto dlb = dlb_info.find(ev.ifname);
+  auto dlb = dlb_info.find(ev.dlb_ifname);
   if(dlb != dlb_info.end()) {
     add_property(&message, "dlb_conn", dlb->second.conn, 2);
     add_property(&message, "dlb_quality", dlb->second.quality, 2);

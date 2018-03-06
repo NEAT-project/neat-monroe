@@ -6,6 +6,7 @@
 struct neat_event {
   std::string iccid;
   std::string ifname;
+  std::string dlb_ifname;
   uint64_t tstamp;
   std::string ip_addr;
   uint8_t device_mode;

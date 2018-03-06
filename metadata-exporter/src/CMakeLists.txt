@@ -15,7 +15,7 @@ ELSE()
   MESSAGE("Check jsoncpp/json/json.h: FOUND")
 ENDIF()
 
-FIND_FILE(CURL_H "curl.h" "/usr/include/curl")
+FIND_FILE(CURL_H "curl.h" "/usr/include/curl" "/usr/include/x86_64-linux-gnu/curl")
 IF (NOT CURL_H)
        MESSAGE(FATAL_ERROR "Check curl/curl.h: NOT FOUND! Is libcurl4-openssl-dev installed?")
 ELSE()

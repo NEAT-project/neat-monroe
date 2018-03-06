@@ -58,15 +58,8 @@ neat_event neat_writer::parse_zmq_message(const std::string& message) const
   }
   
   struct neat_event ev;
-
   ev.iccid = root.get("ICCID", "").asString();
-
-  //if (root.isMember("InternalInterface")) {
-  //  ev.ifname = root.get("InternalInterface", "").asString();
-  //} else {
-    ev.ifname = root.get("InterfaceName", "").asString();
-  //}
-
+  ev.ifname = root.get(ifname_key, "").asString();
   ev.tstamp = root.get("Timestamp", 0).asUInt64();
   ev.ip_addr = root.get("IPAddress", "").asString();
   ev.device_mode = root.get("DeviceMode", 0).asUInt();
@@ -251,8 +244,8 @@ bool neat_writer::hande_dlb_timer()
 }
 
 neat_writer::neat_writer(mqloop& loop, const std::string& zmq_topic, const std::string& zmq_addr)
-  : zmq_topic(zmq_topic), zmq_addr(zmq_addr), loop(loop),
-    subscriber(loop.get_zmq_context(), ZMQ_SUB),
+  : zmq_topic(zmq_topic), zmq_addr(zmq_addr), ifname_key("InterfaceName"),
+    loop(loop), subscriber(loop.get_zmq_context(), ZMQ_SUB),
     dlb_timer(loop, {{5,0},{0,500000000}}, std::bind(&neat_writer::hande_dlb_timer, this))
 {
   curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -277,4 +270,9 @@ void neat_writer::set_cib_file(const std::string& prefix, const std::string& ext
 {
   cib_prefix = prefix;
   cib_extension = extension;
+}
+
+void neat_writer::set_ifname_key(const std::string& key)
+{
+  ifname_key = key;
 }

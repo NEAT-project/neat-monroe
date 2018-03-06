@@ -20,6 +20,8 @@ const char *help_string =
   "        CIB file path and prefix, e.g. '/var/run/neat/cib/'\n"
   "  --cib-extension|-e EXTENSION]\n"
   "        CIB file extension, Default '.cib'\n"
+  "  --ifname-key|-i IFNAME\n"
+  "        Inlterface name JSON key in ZMQ messages (InterfaceName or InternalInterface)\n"
   "  --help|-h\n"
   "        Prints this information and exits\n"
   "  --versoin|-v\n"
@@ -30,11 +32,13 @@ int main(int argc, char **argv)
   std::string cib_socket;
   std::string cib_prefix;
   std::string cib_extension = ".cib";
+  std::string ifname_key = "InterfaceName";
 
   static struct option long_options[] = {
     { "cib-socket", required_argument, 0, 's' },
     { "cib-prefix", required_argument, 0, 'p' },
     { "cib-extension", required_argument, 0, 'e' },
+    { "ifname-key", required_argument, 0, 'i' },
     { "help", no_argument, 0, 'h' },
     { "version", no_argument, 0, 'v'},
     { 0, 0, 0, 0 }
@@ -42,7 +46,7 @@ int main(int argc, char **argv)
 
   while (true) {
     int option_index = 0;
-    int c = getopt_long(argc, argv, "s:p:e:hv",
+    int c = getopt_long(argc, argv, "s:p:e:i:hv",
                         long_options, &option_index);
     if (c == -1) {
       break;
@@ -59,6 +63,10 @@ int main(int argc, char **argv)
 
       case 'e':
         cib_extension = optarg;
+        break;
+
+      case 'i':
+        ifname_key = optarg;
         break;
 
       case 'h':
@@ -87,10 +95,12 @@ int main(int argc, char **argv)
   std::cerr << "cib-socket: " << cib_socket << std::endl;
   std::cerr << "cib-prefix: " << cib_prefix << std::endl;
   std::cerr << "cib-extension: " << cib_extension << std::endl;
+  std::cerr << "ifname-key: " << ifname_key << std::endl;
 
   neat_writer writer(daemon, ZMQ_TOPIC, ZMQ_ADDR);
   writer.set_cib_socket(cib_socket);
   writer.set_cib_file(cib_prefix, cib_extension);
+  writer.set_ifname_key(ifname_key);
 
   daemon.run();
 

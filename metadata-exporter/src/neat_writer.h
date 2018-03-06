@@ -37,6 +37,7 @@ class neat_writer
     std::string cib_extension;
     std::string zmq_topic;
     std::string zmq_addr;
+    std::string ifname_key;
     mqloop& loop;
     zmq::socket_t subscriber;
     mqtimer dlb_timer;
@@ -60,4 +61,5 @@ class neat_writer
 
     void set_cib_socket(const std::string& name);
     void set_cib_file(const std::string& prefix, const std::string& extension);
+    void set_ifname_key(const std::string& key);
 };

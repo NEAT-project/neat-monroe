@@ -207,7 +207,8 @@ bool neat_writer::hande_dlb_timer()
   if (curl) {
     std::string json_str;
     CURLcode res;
-    curl_easy_setopt(curl, CURLOPT_URL, "http://localhost/dlb.json");
+    //curl_easy_setopt(curl, CURLOPT_URL, "http://localhost/dlb.json");
+    curl_easy_setopt(curl, CURLOPT_URL, "http://localhost:88/dlb");
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, handle_curl_data);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&json_str);
     //curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);

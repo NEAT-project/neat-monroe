@@ -10,6 +10,7 @@ struct app_config
   int count;
   int interval;
   int verbose;
+  char *bind_ifname;
 };
 
 void parse_args(int argc, char *argv[], struct app_config *cfg);

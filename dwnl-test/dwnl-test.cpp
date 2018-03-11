@@ -7,6 +7,7 @@
 #include <arpa/inet.h>
 #include <libgen.h>
 #include <time.h>
+#include <errno.h>
 
 #include "version.h"
 #include "arg_parser.h"
@@ -34,6 +35,16 @@ int dwnl_test_run(struct flow_info *fi)
   if (sockfd < 0) {
     fprintf(stderr, "ERROR: failed to create a socket\n");
     goto cleanup;
+  }
+
+  if (fi->cfg.bind_ifname) {
+    err = setsockopt(sockfd, SOL_SOCKET, SO_BINDTODEVICE,
+      (void *)fi->cfg.bind_ifname, strlen(fi->cfg.bind_ifname));
+    if (err) {
+      fprintf(stderr, "ERROR: binding to %s failed. %s\n",
+        fi->cfg.bind_ifname, strerror(errno));
+      goto cleanup;
+    }
   }
 
   he = gethostbyname(fi->cfg.host);
@@ -128,6 +139,10 @@ cleanup:
 
   if (fi.cfg.path) {
     free(fi.cfg.path);
+  }
+
+   if (fi.cfg.bind_ifname) {
+    free(fi.cfg.bind_ifname);
   }
 
   fprintf(stderr, "INFO: %s terminated\n", APP_NAME);

@@ -22,7 +22,7 @@ ELSE()
        MESSAGE("Check curl/curl.h: FOUND")
 ENDIF()
 
-set(APP_VERSION "1.1.2")
+set(APP_VERSION "1.1.3")
 
 add_definitions("-std=c++11 -Wall")
 add_definitions("-DAPP_VERSION=\"${APP_VERSION}\"")

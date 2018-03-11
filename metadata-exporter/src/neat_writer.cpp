@@ -68,9 +68,9 @@ neat_event neat_writer::parse_zmq_message(const std::string& message) const
   ev.rssi = root.get("RSSI", 0).asInt();
   ev.rscp = root.get("RSCP", 0).asInt();
   ev.ecio = root.get("ECIO", 0).asInt();
-  ev.lte_rssi = root.get("LTERSSI", 0).asInt();
-  ev.lte_rsrp = root.get("LTERSRP", 0).asInt();
-  ev.lte_rsrq = root.get("LTERSRQ", 0).asInt();
+  ev.lte_rssi = root.get("RSSI", 0).asInt();
+  ev.lte_rsrp = root.get("RSRP", 0).asInt();
+  ev.lte_rsrq = root.get("RSRQ", 0).asInt();
   ev.lte_freq = root.get("Frequency", 0).asInt();
   ev.lte_band = root.get("Band", 0).asInt();
   ev.lac = root.get("LAC", 0).asUInt();

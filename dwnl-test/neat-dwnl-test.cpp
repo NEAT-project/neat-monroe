@@ -19,6 +19,7 @@ static neat_error_code on_error(struct neat_flow_operations *ops);
 struct flow_info
 {
   struct timespec ts1;
+  struct timespec tsinit;
   struct timespec ts2;
   struct app_config cfg;
   int iter;
@@ -77,6 +78,8 @@ dwnl_test_run(struct flow_info *fi)
   neat_error_code err = NEAT_OK;
   struct neat_ctx *ctx = NULL;
 
+  clock_gettime(CLOCK_REALTIME, &fi->ts1);
+
   ctx = neat_init_ctx();
   if (!ctx) {
     fprintf(stderr, "ERROR: neat_init_ctx failed!\n");
@@ -96,6 +99,8 @@ dwnl_test_run(struct flow_info *fi)
     fprintf(stderr, "ERROR: neat_start_event_loop failed");
     goto cleanup;
   }
+
+  clock_gettime(CLOCK_REALTIME, &fi->ts2);
 
 cleanup:
   if (ctx) {
@@ -160,6 +165,8 @@ on_writable(struct neat_flow_operations *ops)
 
   fprintf(stderr, "INFO: %s\n", __FUNCTION__);
 
+  clock_gettime(CLOCK_REALTIME, &fi->tsinit);
+
   snprintf(buffer, sizeof(buffer),
     "GET %s HTTP/1.1\r\n"
     "Host: %s\r\n"
@@ -173,8 +180,6 @@ on_writable(struct neat_flow_operations *ops)
     fprintf(stderr, "ERROR: %s - neat_write failed\n", __FUNCTION__);
     goto error;
   }
-
-  clock_gettime(CLOCK_REALTIME, &fi->ts1);
 
   fi->len = 0;
 
@@ -213,7 +218,6 @@ on_close(struct neat_flow_operations *ops)
 {
   struct flow_info *fi = (struct flow_info *)ops->userData;
   fprintf(stderr, "INFO: %s\n", __FUNCTION__);
-  clock_gettime(CLOCK_REALTIME, &fi->ts2);
   neat_stop_event_loop(ops->ctx);
   return NEAT_OK;
 }
@@ -243,14 +247,21 @@ int main(int argc, char *argv[])
       goto cleanup;
     }
 
+    if (fi.tsinit.tv_nsec < fi.ts1.tv_nsec) {
+      fi.tsinit.tv_nsec += 1000000000;
+      fi.tsinit.tv_sec--;
+    }
     if (fi.ts2.tv_nsec < fi.ts1.tv_nsec) {
       fi.ts2.tv_nsec += 1000000000;
       fi.ts2.tv_sec--;
     }
-    fprintf(stdout, "%d\t%d\t%ld.%09ld\n", fi.iter, fi.len,
+    fprintf(stdout, "neat-dwnl-test\t%d\t%s\t%d\t%s\t%d\t%ld.%09ld\t%ld.%09ld\n",
+      fi.iter, fi.cfg.host, fi.cfg.port, fi.cfg.path, fi.len,
+      (long)(fi.tsinit.tv_sec - fi.ts1.tv_sec),
+      fi.tsinit.tv_nsec - fi.ts1.tv_nsec,
       (long)(fi.ts2.tv_sec - fi.ts1.tv_sec),
       fi.ts2.tv_nsec - fi.ts1.tv_nsec);
-  
+
     sleep(fi.cfg.interval);
   }
 

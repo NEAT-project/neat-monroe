@@ -15,6 +15,7 @@
 struct flow_info
 {
   struct timespec ts1;
+  struct timespec tsinit;
   struct timespec ts2;
   struct app_config cfg;
   int iter;
@@ -30,6 +31,8 @@ int dwnl_test_run(struct flow_info *fi)
   int len = 0;
   char send_buffer[256];
   char recv_buffer[2048];
+
+  clock_gettime(CLOCK_REALTIME, &fi->ts1);
   
   sockfd = socket(AF_INET, SOCK_STREAM, 0);
   if (sockfd < 0) {
@@ -63,6 +66,8 @@ int dwnl_test_run(struct flow_info *fi)
     goto cleanup;
   }
 
+  clock_gettime(CLOCK_REALTIME, &fi->tsinit);
+
   snprintf(send_buffer, sizeof(send_buffer),
     "GET %s HTTP/1.1\r\n"
     "Host: %s\r\n"
@@ -76,8 +81,6 @@ int dwnl_test_run(struct flow_info *fi)
     fprintf(stderr, "ERROR: send failed\n");
     goto cleanup;
   }
-
-  clock_gettime(CLOCK_REALTIME, &fi->ts1);
 
   fi->len = 0;
   while(1) {
@@ -121,11 +124,18 @@ int main(int argc, char *argv[])
       goto cleanup;
     }
 
+    if (fi.tsinit.tv_nsec < fi.ts1.tv_nsec) {
+      fi.tsinit.tv_nsec += 1000000000;
+      fi.tsinit.tv_sec--;
+    }
     if (fi.ts2.tv_nsec < fi.ts1.tv_nsec) {
       fi.ts2.tv_nsec += 1000000000;
       fi.ts2.tv_sec--;
     }
-    fprintf(stdout, "%d\t%d\t%ld.%09ld\n", fi.iter, fi.len,
+    fprintf(stdout, "dwnl-test\t%d\t%s\t%d\t%s\t%d\t%ld.%09ld\t%ld.%09ld\n",
+      fi.iter, fi.cfg.host, fi.cfg.port, fi.cfg.path, fi.len,
+      (long)(fi.tsinit.tv_sec - fi.ts1.tv_sec),
+      fi.tsinit.tv_nsec - fi.ts1.tv_nsec,
       (long)(fi.ts2.tv_sec - fi.ts1.tv_sec),
       fi.ts2.tv_nsec - fi.ts1.tv_nsec);
   

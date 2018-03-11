@@ -123,7 +123,8 @@ on_connected(struct neat_flow_operations *ops)
       fi->ts2.tv_sec--;
     }
     fi->iter += 1;
-    fprintf(stdout, "%d %ld.%09ld\n", fi->iter, 
+    fprintf(stdout, "neat-tcp-ping\t%d\t%s\t%d\t%d\t%ld.%09ld\n",
+      fi->iter, fi->cfg.host, fi->cfg.port, fi->cfg.mode,
       (long)(fi->ts2.tv_sec - fi->ts1.tv_sec),
       fi->ts2.tv_nsec - fi->ts1.tv_nsec);
 
@@ -166,10 +167,11 @@ on_readable(struct neat_flow_operations *ops)
     fi->ts2.tv_sec--;
   }
   fi->iter += 1;
-  fprintf(stdout, "%d %ld.%09ld\n", fi->iter,
+  fprintf(stdout, "neat-tcp-ping\t%d\t%s\t%d\t%d\t%ld.%09ld\n",
+    fi->iter, fi->cfg.host, fi->cfg.port, fi->cfg.mode,
     (long)(fi->ts2.tv_sec - fi->ts1.tv_sec),
     fi->ts2.tv_nsec - fi->ts1.tv_nsec);
-  
+
   if (fi->iter >= fi->cfg.count) {
     neat_stop_event_loop(ops->ctx);
   } else {

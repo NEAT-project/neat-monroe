@@ -14,14 +14,15 @@ void print_usage(void)
   const char *usage = "\n"
     APP_NAME " [OPTIONS] HOST\n"
     "\n"
-    "--port=PORT, -p PORT             Port nubmer to connect to, default 80\n"
-    "--mode=MODE, -m MODE             Mode, possible values connect or echo\n"
-    "                                 The default mode is connect\n"
-    "--count=COUNT, -n COUNT          Number of pings to run\n"
-    "--interval=INTERVAL -i INTERVAL  Interval in seconds between pings\n"
-    "--verbose[=N], -v[vvv]           Verbosity level 1,2,4 or 4\n"
-    "--help, -h                       Display this usage and exits\n"
-    "--version, -V                    Display version number and exits\n";
+    "--port=PORT, -p PORT              Port nubmer to connect to, default 80\n"
+    "--mode=MODE, -m MODE              Mode, possible values connect or echo\n"
+    "                                  The default mode is connect\n"
+    "--count=COUNT, -n COUNT           Number of pings to run, default 1\n"
+    "--interval=INTERVAL, -i INTERVAL  Interval in seconds between pings, default 1\n"
+    "--bind=IFNAME, -b IFNAME          Bind interface name\n"
+    "--verbose[=N], -v[vvv]            Verbosity level 1,2,3 or 4\n"
+    "--help, -h                        Display this usage and exits\n"
+    "--version, -V                     Display version number and exits\n";
 
   fprintf(stderr, "%s\n", usage);
 }
@@ -39,6 +40,7 @@ void parse_args(int argc, char *argv[], struct app_config *cfg)
     {"mode", required_argument, 0, 'm'},
     {"count", required_argument, 0, 'n'},
     {"interval", required_argument, 0, 'i'},
+    {"bind", required_argument, 0, 'b'},
     {"verbose", optional_argument, 0, 'v'},
     {"help", no_argument, 0, 'h'},
     {"version", no_argument, 0, 'V'},
@@ -51,12 +53,13 @@ void parse_args(int argc, char *argv[], struct app_config *cfg)
   cfg->host = NULL;
   cfg->port = 80;
   cfg->mode = PING_MODE_CONNECT;
-  cfg->count = 10;
+  cfg->count = 1;
   cfg->interval = 1;
   cfg->verbose = 0;
+  cfg->bind_ifname = NULL;
   
   while(1) {
-    option = getopt_long(argc, argv, "p:m:n:i:vhV", long_options, &option_index);
+    option = getopt_long(argc, argv, "p:m:n:i:b:vhV", long_options, &option_index);
     if (option == -1) {
       break;
     }
@@ -81,6 +84,9 @@ void parse_args(int argc, char *argv[], struct app_config *cfg)
         break;
       case 'i':
         cfg->interval = strtol(optarg, NULL, 10);
+        break;
+      case 'b':
+        cfg->bind_ifname = strdup(optarg);
         break;
       case 'v':
         cfg->verbose += optarg ? strtol(optarg, NULL, 10) : 1;
@@ -121,5 +127,6 @@ void parse_args(int argc, char *argv[], struct app_config *cfg)
   fprintf(stderr, "INFO: Mode %d (1-connect, 2-echo)\n", cfg->mode);
   fprintf(stderr, "INFO: Count %d\n", cfg->count);
   fprintf(stderr, "INFO: Interval %d\n", cfg->interval);
+  fprintf(stderr, "INFO: Bind %s\n", cfg->bind_ifname);
   fprintf(stderr, "INFO: Verbose %d\n", cfg->verbose);
 }

@@ -3,3 +3,4 @@ metadata-exporter/src/build
 neat-http-get/build
 dwnl-test/build
 tcp-ping/build
+neat-proxy/build

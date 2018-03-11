@@ -1,0 +1,17 @@
+{
+  "uid": "frequency",
+  "priority": 3,
+  "description": "LTE Frequency order of preference",
+  "policy_type": "policy",
+  "replace_matched": false,
+  "match" : {
+      "lte_freq": { "value": [1800, 800, 2600] }
+  },
+  "properties":[
+    [
+      {"lte_freq": { "value": 1800, "precedence": 2, "score": 1 }},
+      {"lte_freq": { "value": 800, "precedence": 2, "score": 3 }},
+      {"lte_freq": { "value": 2600, "precedence": 2, "score": 7 }}
+    ]
+  ]
+}

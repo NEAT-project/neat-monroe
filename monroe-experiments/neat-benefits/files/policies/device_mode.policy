@@ -1,0 +1,17 @@
+{
+  "uid": "device_mode",
+  "priority": 3,
+  "description": "Prefer LTE over 3G over 2G",
+  "policy_type": "policy",
+  "replace_matched": false,
+  "match" : {
+      "device_mode": { "value": [3, 4, 5] }
+  },
+  "properties":[
+    [
+      {"device_mode": { "value": 3, "precedence": 2, "score": 1 }},
+      {"device_mode": { "value": 4, "precedence": 2, "score": 10 }},
+      {"device_mode": { "value": 5, "precedence": 2, "score": 20 }}
+    ]
+  ]
+}

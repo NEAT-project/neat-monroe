@@ -17,6 +17,8 @@ struct neat_event {
   int8_t lte_rssi;
   int16_t lte_rsrp;
   int8_t lte_rsrq;
+  uint16_t lte_freq;
+  uint8_t lte_band;
   uint16_t lac;
   int32_t cid;
   uint32_t nw_mccmnc;

@@ -71,6 +71,8 @@ neat_event neat_writer::parse_zmq_message(const std::string& message) const
   ev.lte_rssi = root.get("LTERSSI", 0).asInt();
   ev.lte_rsrp = root.get("LTERSRP", 0).asInt();
   ev.lte_rsrq = root.get("LTERSRQ", 0).asInt();
+  ev.lte_freq = root.get("Frequency", 0).asInt();
+  ev.lte_band = root.get("Band", 0).asInt();
   ev.lac = root.get("LAC", 0).asUInt();
   ev.cid = root.get("CID", 0).asInt();
   ev.nw_mccmnc = root.get("NWMCCMNC", 0).asUInt();
@@ -106,13 +108,15 @@ std::string neat_writer::form_neat_message(const neat_event& ev) const
   add_property(&message, "device_submode", ev.device_submode, 2);
 
   if (ev.device_mode == 5) { // LTE
-    add_property(&message, "rssi", ev.rssi, 2);
-    add_property(&message, "rscp", ev.rscp, 2);
-    add_property(&message, "ecio", ev.ecio, 2);
-  } else {
     add_property(&message, "lte_rssi", ev.lte_rssi, 2);
     add_property(&message, "lte_rsrp", ev.lte_rsrp, 2);
     add_property(&message, "lte_rsrq", ev.lte_rsrq, 2);
+    add_property(&message, "lte_freq", ev.lte_rsrq, 2);
+    add_property(&message, "lte_band", ev.lte_rsrq, 2);
+  } else {
+    add_property(&message, "rssi", ev.rssi, 2);
+    add_property(&message, "rscp", ev.rscp, 2);
+    add_property(&message, "ecio", ev.ecio, 2);
   }
 
   add_property(&message, "lac", ev.lac, 2);

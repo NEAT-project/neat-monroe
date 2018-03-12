@@ -111,8 +111,8 @@ std::string neat_writer::form_neat_message(const neat_event& ev) const
     add_property(&message, "lte_rssi", ev.lte_rssi, 2);
     add_property(&message, "lte_rsrp", ev.lte_rsrp, 2);
     add_property(&message, "lte_rsrq", ev.lte_rsrq, 2);
-    add_property(&message, "lte_freq", ev.lte_rsrq, 2);
-    add_property(&message, "lte_band", ev.lte_rsrq, 2);
+    add_property(&message, "lte_freq", ev.lte_freq, 2);
+    add_property(&message, "lte_band", ev.lte_band, 2);
   } else {
     add_property(&message, "rssi", ev.rssi, 2);
     add_property(&message, "rscp", ev.rscp, 2);

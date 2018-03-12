@@ -1,0 +1,17 @@
+{
+  "uid": "signal_strength",
+  "priority": 3,
+  "description": "Prefer connections with stronger signal (2G/3G)",
+  "policy_type": "policy",
+  "replace_matched": false,
+  "match" : {
+      "rssi": {"value": {"start": -128, "end": 0}}
+  },
+  "properties":[
+    [
+      {"rssi": {"value": {"start": -128, "end": -95}, "precedence": 2, "score": 0}},
+      {"rssi": {"value": {"start": -94, "end": -70}, "precedence": 2, "score": 5}},
+      {"rssi": {"value": {"start": -69, "end": 0}, "precedence": 2, "score": 15}}
+    ]
+  ]
+}

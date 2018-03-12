@@ -1,0 +1,23 @@
+{
+  "uid": "signal_strength_lte",
+  "priority": 3,
+  "description": "Prefer connections with stronger signal (LTE)",
+  "policy_type": "policy",
+  "replace_matched": false,
+  "match" : {
+      "lte_rsrp": {"value": {"start": -140, "end": 0}},
+      "lte_rsrq": {"value": {"start": -20, "end": 0}}
+  },
+  "properties":[
+    [
+      {"lte_rsrp": {"value": {"start": -140, "end": -112}, "precedence": 2, "score": 0}},
+      {"lte_rsrp": {"value": {"start": -111, "end": -84}, "precedence": 2, "score": 3}},
+      {"lte_rsrp": {"value": {"start": -84, "end": 0}, "precedence": 2, "score": 8}}
+    ],
+    [
+      {"lte_rsrq": {"value": {"start": -20, "end": -11}, "precedence": 2, "score": 0}},
+      {"lte_rsrq": {"value": {"start": -10, "end": -6}, "precedence": 2, "score": 3}},
+      {"lte_rsrq": {"value": {"start": -5, "end": 0}, "precedence": 2, "score": 8}}
+    ]
+  ]
+}

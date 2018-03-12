@@ -1,0 +1,17 @@
+{
+  "uid": "dlb_quality",
+  "priority": 3,
+  "description": "Prefer connection with better quality",
+  "policy_type": "policy",
+  "replace_matched": false,
+  "match" : {
+      "dlb_quality": { "value": [0, 1, 2] }
+  },
+  "properties":[
+    [
+      {"dlb_quality": { "value": 0, "precedence": 2, "score": 0 }},
+      {"dlb_quality": { "value": 1, "precedence": 2, "score": 5 }},
+      {"dlb_quality": { "value": 2, "precedence": 2, "score": 30 }}
+    ]
+  ]
+}

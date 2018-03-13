@@ -12,6 +12,8 @@
 #include "version.h"
 #include "arg_parser.h"
 
+#define LOCAL_ADDR_LEN (32)
+
 struct flow_info
 {
   struct timespec ts1;
@@ -20,6 +22,8 @@ struct flow_info
   struct app_config cfg;
   int iter;
   int len;
+  char local_addr[LOCAL_ADDR_LEN];
+  uint16_t local_port;
 };
 
 int dwnl_test_run(struct flow_info *fi)
@@ -27,13 +31,14 @@ int dwnl_test_run(struct flow_info *fi)
   int err = 0;
   int sockfd = -1;
   struct hostent *he = NULL;
-  struct sockaddr_in serv_addr;
-  int len = 0;
+  struct sockaddr_in serv_addr, local_addr;
+  int addr_len = sizeof(struct sockaddr);
   char send_buffer[256];
   char recv_buffer[2048];
+  int len = 0;
 
   clock_gettime(CLOCK_REALTIME, &fi->ts1);
-  
+
   sockfd = socket(AF_INET, SOCK_STREAM, 0);
   if (sockfd < 0) {
     fprintf(stderr, "ERROR: failed to create a socket\n");
@@ -58,13 +63,22 @@ int dwnl_test_run(struct flow_info *fi)
 
   memset(&serv_addr, '0', sizeof(serv_addr));
   serv_addr.sin_family = AF_INET;
-  serv_addr.sin_port = htons(fi->cfg.port); 
+  serv_addr.sin_port = htons(fi->cfg.port);
   serv_addr.sin_addr = *((struct in_addr **)he->h_addr_list)[0];
-  
-  if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) != 0) {
+
+  err = connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+  if (err) {
     fprintf(stderr, "ERROR: failed to connect to %s\n", fi->cfg.host);
     goto cleanup;
   }
+
+  err = getsockname(sockfd, (struct sockaddr *)&local_addr, (socklen_t *)&addr_len);
+  if (err) {
+    fprintf(stderr, "ERROR: failed to obtain local socket address. %s\n", strerror(errno));
+    goto cleanup;
+  }
+  snprintf(fi->local_addr, LOCAL_ADDR_LEN, "%s", inet_ntoa(local_addr.sin_addr));
+  fi->local_port = ntohs(local_addr.sin_port);
 
   clock_gettime(CLOCK_REALTIME, &fi->tsinit);
 
@@ -111,7 +125,10 @@ int main(int argc, char *argv[])
 {
   int err = 0;
   struct flow_info fi;
+
   fprintf(stderr, "INFO: %s started\n", APP_NAME);
+
+  memset(&fi, 0, sizeof(struct flow_info));
 
   parse_args(argc, argv, &fi.cfg);
 
@@ -132,13 +149,13 @@ int main(int argc, char *argv[])
       fi.ts2.tv_nsec += 1000000000;
       fi.ts2.tv_sec--;
     }
-    fprintf(stdout, "dwnl-test\t%d\t%s\t%d\t%s\t%d\t%ld.%09ld\t%ld.%09ld\n",
-      fi.iter, fi.cfg.host, fi.cfg.port, fi.cfg.path, fi.len,
+    fprintf(stdout, "dwnl-test\t%d\t%s\t%s\t%d\t%s\t%d\t%ld.%09ld\t%ld.%09ld\n",
+      fi.iter, fi.local_addr, fi.cfg.host, fi.cfg.port, fi.cfg.path, fi.len,
       (long)(fi.tsinit.tv_sec - fi.ts1.tv_sec),
       fi.tsinit.tv_nsec - fi.ts1.tv_nsec,
       (long)(fi.ts2.tv_sec - fi.ts1.tv_sec),
       fi.ts2.tv_nsec - fi.ts1.tv_nsec);
-  
+
     sleep(fi.cfg.interval);
   }
 

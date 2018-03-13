@@ -16,6 +16,8 @@ static neat_error_code on_aborted(struct neat_flow_operations *ops);
 static neat_error_code on_timeout(struct neat_flow_operations *ops);
 static neat_error_code on_error(struct neat_flow_operations *ops);
 
+#define LOCAL_ADDR_LEN (32)
+
 struct flow_info
 {
   struct timespec ts1;
@@ -24,7 +26,29 @@ struct flow_info
   struct app_config cfg;
   int iter;
   int len;
+  char local_addr[LOCAL_ADDR_LEN];
+  uint16_t local_port;
 };
+
+void
+flow_get_addr(struct neat_flow_operations *ops, char *ipaddr_buf, int ipaddr_buf_len, uint16_t *port, int local)
+{
+  struct sockaddr* addrs = NULL;
+  struct sockaddr_in* addr = NULL;
+  int n = neat_getlpaddrs(ops->ctx, ops->flow, &addrs, local);
+  if (n > 0) {
+    addr = (struct sockaddr_in*)&addrs[0];
+    snprintf(ipaddr_buf, ipaddr_buf_len, "%s", inet_ntoa(addr->sin_addr));
+    *port = ntohs(addr->sin_port);
+  } else {
+    snprintf(ipaddr_buf, ipaddr_buf_len, "?");
+    *port = 0;
+  }
+
+  if (addrs) {
+    free(addrs);
+  }
+}
 
 static neat_error_code
 dwnl_test_open_flow(struct neat_ctx *ctx, struct flow_info *fi)
@@ -120,13 +144,15 @@ on_connected(struct neat_flow_operations *ops)
 
   fprintf(stderr, "INFO: %s\n", __FUNCTION__);
 
+  flow_get_addr(ops, fi->local_addr, LOCAL_ADDR_LEN, &fi->local_port, 1);
+
   ops->on_writable = on_writable;
   err = neat_set_operations(ops->ctx, ops->flow, ops);
   if (err != NEAT_OK) {
     fprintf(stderr, "ERROR: %s - neat_set_operations failed\n", __FUNCTION__);
     goto error;
   }
- 
+
   return NEAT_OK;
 
 error:
@@ -140,7 +166,7 @@ on_readable(struct neat_flow_operations *ops)
   struct flow_info *fi = (struct flow_info *)ops->userData;
   char buffer[2048];
   uint32_t num_of_bytes = 0;
-  
+
   fprintf(stderr, "INFO: %s\n", __FUNCTION__);
 
   err = neat_read(ops->ctx, ops->flow, (unsigned char*)buffer, sizeof(buffer), &num_of_bytes, NULL, 0);
@@ -234,7 +260,10 @@ int main(int argc, char *argv[])
 {
   neat_error_code err = NEAT_OK;
   struct flow_info fi;
+
   fprintf(stderr, "INFO: %s started\n", APP_NAME);
+
+  memset(&fi, 0, sizeof(struct flow_info));
 
   parse_args(argc, argv, &fi.cfg);
 
@@ -255,8 +284,8 @@ int main(int argc, char *argv[])
       fi.ts2.tv_nsec += 1000000000;
       fi.ts2.tv_sec--;
     }
-    fprintf(stdout, "neat-dwnl-test\t%d\t%s\t%d\t%s\t%d\t%ld.%09ld\t%ld.%09ld\n",
-      fi.iter, fi.cfg.host, fi.cfg.port, fi.cfg.path, fi.len,
+    fprintf(stdout, "neat-dwnl-test\t%d\t%s\t%s\t%d\t%s\t%d\t%ld.%09ld\t%ld.%09ld\n",
+      fi.iter, fi.local_addr, fi.cfg.host, fi.cfg.port, fi.cfg.path, fi.len,
       (long)(fi.tsinit.tv_sec - fi.ts1.tv_sec),
       fi.tsinit.tv_nsec - fi.ts1.tv_nsec,
       (long)(fi.ts2.tv_sec - fi.ts1.tv_sec),

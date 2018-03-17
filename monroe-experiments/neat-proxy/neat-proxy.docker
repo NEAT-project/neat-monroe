@@ -11,11 +11,11 @@ RUN apt-get update && \
 
 # Copy files and create neat-proxy entry point
 
-COPY files/* /opt/celerway/
+COPY files/ /opt/celerway/
 WORKDIR /opt/celerway
 RUN dpkg -i neat-proxy_1.0.2_amd64.deb
-RUN dpkg -i neat-metadata-exporter_1.1.1_amd64.deb
-RUN dpkg -i dwnl-test_1.0.0_amd64.deb
+RUN dpkg -i neat-metadata-exporter_1.1.5_amd64.deb
+RUN dpkg -i dwnl-test_1.0.3_amd64.deb
 
 ENTRYPOINT ["dumb-init", "--", "/bin/bash", "/opt/celerway/neat-proxy.sh"]
 

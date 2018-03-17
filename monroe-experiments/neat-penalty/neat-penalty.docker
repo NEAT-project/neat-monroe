@@ -1,0 +1,21 @@
+FROM trozensztrauch/neat-base
+
+MAINTAINER tomasz.rozensztrauch@radytek.com
+
+# Install prerequisities
+
+RUN apt-get update && \
+    apt-get install -y libjsoncpp1 libzmq5 && \
+    apt-get install -y time && \
+    apt-get clean
+
+# Copy files and create experiment entry point
+
+COPY files/ /opt/celerway/
+WORKDIR /opt/celerway
+RUN dpkg -i tcp-ping_1.0.3_amd64.deb
+RUN dpkg -i dwnl-test_1.0.3_amd64.deb
+RUN dpkg -i neat-metadata-exporter_1.1.5_amd64.deb
+
+ENTRYPOINT ["dumb-init", "--", "/bin/bash", "/opt/celerway/neat-penalty.sh"]
+

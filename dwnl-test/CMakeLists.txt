@@ -3,11 +3,11 @@ project(dwnl-test)
 
 set(APP_VERSION "1.0.4")
 
-set(SRC_LIST dwnl-test.cpp arg_parser.cpp)
+set(SRC_LIST dwnl-test.cpp arg_parser.cpp logger.cpp)
 add_executable(dwnl-test ${SRC_LIST})
 target_compile_definitions(dwnl-test PRIVATE APP_NAME="dwnl-test" APP_VERSION="${APP_VERSION}")
 
-set(SRC_LIST_NEAT neat-dwnl-test.cpp arg_parser.cpp)
+set(SRC_LIST_NEAT neat-dwnl-test.cpp arg_parser.cpp logger.cpp)
 set(LIB_LIST_NEAT neat)
 add_executable(neat-dwnl-test ${SRC_LIST_NEAT})
 target_compile_definitions(neat-dwnl-test PRIVATE APP_NAME="neat-dwnl-test" APP_VERSION="${APP_VERSION}")

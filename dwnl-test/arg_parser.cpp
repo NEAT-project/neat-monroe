@@ -5,6 +5,7 @@
 
 #include "version.h"
 #include "arg_parser.h"
+#include "logger.h"
 
 inline int min(int a, int b) { return a < b ? a : b; }
 inline int max(int a, int b) { return a > b ? a : b; }
@@ -18,17 +19,18 @@ void print_usage(void)
     "--path=PATH, -x PATH              Requested URI path, the default value is '/'\n"
     "--count=COUNT, -n COUNT           Number of consecutive downloads to run, default 1\n"
     "--interval=INTERVAL, -i INTERVAL  Interval in seconds between each run, default 1\n"
+    "--timeout=TIMEOUT, -t TIMEOUT     Application timeout in seconds, deault no timeout\n"
     "--bind=IFNAME, -b IFNAME          Bind interface name\n"
-    "--verbose[=N], -v[vvv]            Verbosity level 1,2,3 or 4\n"
+    "--verbose[=N], -v[vvv]             Verbosity level 0,1,2 or 3\n"
     "--help, -h                        Display this usage and exits\n"
     "--version, -V                     Display version number and exits\n";
 
-  fprintf(stderr, "%s\n", usage);
+  fprintf(stdout, "%s\n", usage);
 }
 
 void print_version(void)
 {
-  fprintf(stderr, "%s version %s\n", APP_NAME, APP_VERSION);
+  fprintf(stdout, "%s version %s\n", APP_NAME, APP_VERSION);
 }
 
 void parse_args(int argc, char *argv[], struct app_config *cfg)
@@ -39,6 +41,7 @@ void parse_args(int argc, char *argv[], struct app_config *cfg)
     {"path", required_argument, 0, 'x'},
     {"count", required_argument, 0, 'n'},
     {"interval", required_argument, 0, 'i'},
+    {"timeout", required_argument, 0, 't'},
     {"bind", required_argument, 0, 'b'},
     {"verbose", optional_argument, 0, 'v'},
     {"help", no_argument, 0, 'h'},
@@ -54,11 +57,12 @@ void parse_args(int argc, char *argv[], struct app_config *cfg)
   cfg->path = NULL;
   cfg->count = 1;
   cfg->interval = 1;
+  cfg->timeout = 0;
   cfg->verbose = 0;
   cfg->bind_ifname = NULL;
   
   while(1) {
-    option = getopt_long(argc, argv, "p:x:n:i:b:vhV", long_options, &option_index);
+    option = getopt_long(argc, argv, "p:x:n:i:t:b:vhV", long_options, &option_index);
     if (option == -1) {
       break;
     }
@@ -66,13 +70,12 @@ void parse_args(int argc, char *argv[], struct app_config *cfg)
     switch(option) {
       case 'p':
         cfg->port = strtol(optarg, NULL, 10);
-        fprintf(stderr, "INFO: port %d\n", cfg->port);
         break;
       case 'x':
         if (cfg->path == NULL) {
           cfg->path = strdup(optarg);
         } else {
-          fprintf(stderr, "ERROR: Path argument specified multiple times\n");
+          log_error("Path argument specified multiple times");
           exit(-1);
         }
         break;
@@ -82,11 +85,14 @@ void parse_args(int argc, char *argv[], struct app_config *cfg)
       case 'i':
         cfg->interval = strtol(optarg, NULL, 10);
         break;
+      case 't':
+        cfg->timeout = strtol(optarg, NULL, 10);
+        break;
       case 'b':
         cfg->bind_ifname = strdup(optarg);
         break;
       case 'v':
-        cfg->verbose += optarg ? strtol(optarg, NULL, 10) : 1;
+        cfg->verbose = optarg ? strtol(optarg, NULL, 10) : cfg->verbose + 1;
         cfg->verbose = max(min(cfg->verbose, 4), 0);
         break;
       case 'h':
@@ -99,7 +105,7 @@ void parse_args(int argc, char *argv[], struct app_config *cfg)
       case '?':
         exit(-1);
       default:
-        fprintf(stderr, "ERROR: Fatal error while parsing command line arguments\n");
+        log_error("Fatal error while parsing command line arguments");
         exit(-1);
 
     }
@@ -110,24 +116,16 @@ void parse_args(int argc, char *argv[], struct app_config *cfg)
   }
 
   if (optind < argc) {
-    fprintf(stderr, "ERROR: Too many program arguments\n");
+    log_error("Too many program arguments");
     exit(-1);
   }
 
   if (!cfg->host) {
-    fprintf(stderr, "ERROR: Missing host argument\n");
+    log_error("Missing host argument");
     exit(-1);
   }
 
   if (!cfg->path) {
     cfg->path = strdup("/");
   }
-
-  fprintf(stderr, "INFO: Host %s\n", cfg->host);
-  fprintf(stderr, "INFO: Port %d\n", cfg->port);
-  fprintf(stderr, "INFO: Path %s\n", cfg->path);
-  fprintf(stderr, "INFO: Count %d\n", cfg->count);
-  fprintf(stderr, "INFO: Interval %d\n", cfg->interval);
-  fprintf(stderr, "INFO: Bind %s\n", cfg->bind_ifname);
-  fprintf(stderr, "INFO: Verbose %d\n", cfg->verbose);
 }

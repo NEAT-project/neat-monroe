@@ -1,14 +1,12 @@
-#define PING_MODE_CONNECT (1)
-#define PING_MODE_ECHO    (2)
 
 struct app_config
 {
   char *host;
   int port;
   char *path;
-  //int mode;
   int count;
   int interval;
+  int timeout;
   int verbose;
   char *bind_ifname;
 };

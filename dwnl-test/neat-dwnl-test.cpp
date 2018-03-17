@@ -6,6 +6,7 @@
 
 #include "version.h"
 #include "arg_parser.h"
+#include "logger.h"
 
 static neat_error_code on_connected(struct neat_flow_operations *ops);
 static neat_error_code on_readable(struct neat_flow_operations *ops);
@@ -25,6 +26,7 @@ struct flow_info
   struct timespec ts2;
   struct app_config cfg;
   int iter;
+  struct timespec ts_app_start;
   int len;
   char local_addr[LOCAL_ADDR_LEN];
   uint16_t local_port;
@@ -51,6 +53,21 @@ flow_get_addr(struct neat_flow_operations *ops, char *ipaddr_buf, int ipaddr_buf
   }
 }
 
+int check_app_timeout(struct flow_info *fi)
+{
+  struct timespec ts;
+
+  if (fi->cfg.timeout > 0) {
+    clock_gettime(CLOCK_REALTIME, &ts);
+    if (ts.tv_sec - fi->ts_app_start.tv_sec > fi->cfg.timeout) {
+      log_warning("App timeout reached");
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
 static neat_error_code
 dwnl_test_open_flow(struct neat_ctx *ctx, struct flow_info *fi)
 {
@@ -62,18 +79,16 @@ dwnl_test_open_flow(struct neat_ctx *ctx, struct flow_info *fi)
     \"transport\": {\"value\": \"TCP\", \"precedence\": 2}\
   }";
 
-  fprintf(stderr, "INFO: %s\n", __FUNCTION__);
-
   flow = neat_new_flow(ctx);
   if (!flow) {
     err = NEAT_ERROR_INTERNAL;
-    fprintf(stderr, "ERROR: neat_new_flow failed");
+    log_error("neat_new_flow failed");
     goto cleanup;
   }
 
   err = neat_set_property(ctx, flow, properties);
   if (err != NEAT_OK) {
-    fprintf(stderr, "ERROR: %s - neat_set_property failed\n", __FUNCTION__);
+    log_error("neat_set_property failed");
     goto cleanup;
   }
 
@@ -86,13 +101,13 @@ dwnl_test_open_flow(struct neat_ctx *ctx, struct flow_info *fi)
   ops.userData = fi;
   err = neat_set_operations(ctx, flow, &ops);
   if (err != NEAT_OK) {
-    fprintf(stderr, "ERROR: %s - neat_set_operations failed\n", __FUNCTION__);
+    log_error("neat_set_operations failed");
     goto cleanup;
   }
 
   err = neat_open(ctx, flow, fi->cfg.host, fi->cfg.port, NULL, 0);
   if (err != NEAT_OK) {
-    fprintf(stderr, "ERROR: %s - neat_open failed\n", __FUNCTION__);
+    log_error("neat_open failed");
     goto cleanup;
   }
 
@@ -112,7 +127,7 @@ dwnl_test_run(struct flow_info *fi)
   ctx = neat_init_ctx();
   if (!ctx) {
     err = NEAT_ERROR_INTERNAL;
-    fprintf(stderr, "ERROR: neat_init_ctx failed!\n");
+    log_error("neat_init_ctx failed");
     goto cleanup;
   }
 
@@ -120,13 +135,13 @@ dwnl_test_run(struct flow_info *fi)
 
   err = dwnl_test_open_flow(ctx, fi);
   if (err != NEAT_OK) {
-    fprintf(stderr, "ERROR: dwnl_test_open_flow failed");
+    log_error("dwnl_test_open_flow failed");
     goto cleanup;
   }
 
   err = neat_start_event_loop(ctx, NEAT_RUN_DEFAULT);
   if (err != NEAT_OK) {
-    fprintf(stderr, "ERROR: neat_start_event_loop failed");
+    log_error("neat_start_event_loop failed");
     goto cleanup;
   }
 
@@ -148,14 +163,14 @@ on_connected(struct neat_flow_operations *ops)
   neat_error_code err = NEAT_OK;
   struct flow_info *fi = (struct flow_info *)ops->userData;
 
-  fprintf(stderr, "INFO: %s\n", __FUNCTION__);
+  log_debug(__FUNCTION__);
 
   flow_get_addr(ops, fi->local_addr, LOCAL_ADDR_LEN, &fi->local_port, 1);
 
   ops->on_writable = on_writable;
   err = neat_set_operations(ops->ctx, ops->flow, ops);
   if (err != NEAT_OK) {
-    fprintf(stderr, "ERROR: %s - neat_set_operations failed\n", __FUNCTION__);
+    log_error("neat_set_operations failed");
     goto error;
   }
 
@@ -173,15 +188,21 @@ on_readable(struct neat_flow_operations *ops)
   char buffer[2048];
   uint32_t num_of_bytes = 0;
 
-  fprintf(stderr, "INFO: %s\n", __FUNCTION__);
+  log_debug(__FUNCTION__);
 
   err = neat_read(ops->ctx, ops->flow, (unsigned char*)buffer, sizeof(buffer), &num_of_bytes, NULL, 0);
   if (err != NEAT_OK) {
-    fprintf(stderr, "ERROR: %s - neat_read\n", __FUNCTION__);
+    log_error("neat_read failed");
     goto error;
   }
 
   fi->len += num_of_bytes;
+
+  if (check_app_timeout(fi)) {
+    neat_close(ops->ctx, ops->flow);
+    neat_stop_event_loop(ops->ctx);
+  }
+
   return NEAT_OK;
 
 error:
@@ -195,7 +216,7 @@ on_writable(struct neat_flow_operations *ops)
   struct flow_info *fi = (struct flow_info *)ops->userData;
   char buffer[256];
 
-  fprintf(stderr, "INFO: %s\n", __FUNCTION__);
+  log_debug(__FUNCTION__);
 
   clock_gettime(CLOCK_REALTIME, &fi->tsinit);
 
@@ -209,7 +230,7 @@ on_writable(struct neat_flow_operations *ops)
 
   err = neat_write(ops->ctx, ops->flow, (unsigned char*)buffer, sizeof(buffer), NULL, 0);
   if (err != NEAT_OK) {
-    fprintf(stderr, "ERROR: %s - neat_write failed\n", __FUNCTION__);
+    log_error("neat_write failed");
     goto error;
   }
 
@@ -219,7 +240,7 @@ on_writable(struct neat_flow_operations *ops)
   ops->on_readable = on_readable;
   err = neat_set_operations(ops->ctx, ops->flow, ops);
   if (err != NEAT_OK) {
-    fprintf(stderr, "ERROR: %s - neat_set_operations failed\n", __FUNCTION__);
+    log_error("neat_set_operations failed");
     goto error;
   }
 
@@ -233,7 +254,9 @@ static neat_error_code
 on_aborted(struct neat_flow_operations *ops)
 {
   struct flow_info *fi = (struct flow_info *)ops->userData;
-  fprintf(stderr, "ERROR: %s\n", __FUNCTION__);
+
+  log_error(__FUNCTION__);
+
   fi->err = NEAT_ERROR_INTERNAL;
   neat_stop_event_loop(ops->ctx);
   return NEAT_OK;
@@ -243,7 +266,9 @@ static neat_error_code
 on_timeout(struct neat_flow_operations *ops)
 {
   struct flow_info *fi = (struct flow_info *)ops->userData;
-  fprintf(stderr, "ERROR: %s\n", __FUNCTION__);
+
+  log_error(__FUNCTION__);
+
   fi->err = NEAT_ERROR_INTERNAL;
   neat_stop_event_loop(ops->ctx);
   return NEAT_OK;
@@ -252,7 +277,8 @@ on_timeout(struct neat_flow_operations *ops)
 static neat_error_code
 on_close(struct neat_flow_operations *ops)
 {
-  fprintf(stderr, "INFO: %s\n", __FUNCTION__);
+  log_debug(__FUNCTION__);
+
   neat_stop_event_loop(ops->ctx);
   return NEAT_OK;
 }
@@ -261,7 +287,9 @@ static neat_error_code
 on_error(struct neat_flow_operations *ops)
 {
   struct flow_info *fi = (struct flow_info *)ops->userData;
-  fprintf(stderr, "ERROR: %s\n", __FUNCTION__);
+
+  log_error(__FUNCTION__);
+
   fi->err = NEAT_ERROR_INTERNAL;
   neat_stop_event_loop(ops->ctx);
   return NEAT_OK;
@@ -271,19 +299,29 @@ int main(int argc, char *argv[])
 {
   neat_error_code err = NEAT_OK;
   struct flow_info fi;
-
-  fprintf(stderr, "INFO: %s started\n", APP_NAME);
-
   memset(&fi, 0, sizeof(struct flow_info));
 
   parse_args(argc, argv, &fi.cfg);
+
+  log_level(fi.cfg.verbose);
+  log_info("%s v%s started", APP_NAME, APP_VERSION);
+  log_info("Host %s", fi.cfg.host);
+  log_info("Port %d", fi.cfg.port);
+  log_info("Path %s", fi.cfg.path);
+  log_info("Count %d", fi.cfg.count);
+  log_info("Interval %d", fi.cfg.interval);
+  log_info("Timeout %d", fi.cfg.timeout);
+  log_info("Bind %s", fi.cfg.bind_ifname);
+  log_info("Verbose %d", fi.cfg.verbose);
+
+  clock_gettime(CLOCK_REALTIME, &fi.ts_app_start);
 
   fi.iter = 0;
   while(fi.iter < fi.cfg.count) {
     fi.iter += 1;
     err = dwnl_test_run(&fi);
     if (err != NEAT_OK) {
-      fprintf(stderr, "ERROR: %s - dwnl_test_run failed\n", __FUNCTION__);
+      log_error("dwnl_test_run failed");
       goto cleanup;
     }
 
@@ -302,6 +340,10 @@ int main(int argc, char *argv[])
       (long)(fi.ts2.tv_sec - fi.ts1.tv_sec),
       fi.ts2.tv_nsec - fi.ts1.tv_nsec);
 
+    if (check_app_timeout(&fi)) {
+        break;
+    }
+
     sleep(fi.cfg.interval);
   }
 
@@ -314,6 +356,6 @@ cleanup:
     free(fi.cfg.path);
   }
 
-  fprintf(stderr, "INFO: %s terminated\n", APP_NAME);
+  log_info("%s v%s terminated", APP_NAME, APP_VERSION);
   return err == NEAT_OK ? 0 : -1;
 }

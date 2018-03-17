@@ -182,18 +182,23 @@ bool neat_writer::handle_message()
   zmq::message_t msg;
   subscriber.recv(&msg);
 
-  std::istringstream iss(std::string(static_cast<char*>(msg.data()), msg.size()));
-  std::string header, body;
-  iss >> header >> body;
+  std::string raw = std::string(static_cast<char*>(msg.data()), msg.size());
+  std::size_t pos = raw.find(' ');
+  if (pos != std::string::npos) {
+    std::string header = raw.substr(0, pos);
+    std::string body = raw.substr(pos + 1);
 
-  std::cerr << "--------" << std::endl;
-  std::cerr << header << std::endl << body << std::endl << std::endl;
+    std::cerr << "--------" << std::endl;
+    std::cerr << header << std::endl << body << std::endl << std::endl;
 
-  neat_event ev = parse_zmq_message(body);
-  std::string message = form_neat_message(ev);
-  //std::cerr << message;
-  notify_policy_manager(message);
-  dump_cib_file(ev.ifname, message);
+    neat_event ev = parse_zmq_message(body);
+    std::string message = form_neat_message(ev);
+    //std::cerr << message;
+    notify_policy_manager(message);
+    dump_cib_file(ev.ifname, message);
+  } else {
+    std::cerr << "NEAT: Invalid ZMQ message: " << raw << std::endl;
+  }
   
   return true;
 }
@@ -207,7 +212,7 @@ size_t neat_writer::handle_curl_data(char *ptr, size_t size, size_t nmemb, void 
 
 bool neat_writer::hande_dlb_timer()
 {
-  std::cerr << "dlb_timer" << std::endl;
+  /*std::cerr << "dlb_timer" << std::endl;
   CURL *curl = curl_easy_init();
   if (curl) {
     std::string json_str;
@@ -245,7 +250,7 @@ bool neat_writer::hande_dlb_timer()
     }
 
     curl_easy_cleanup(curl);
-  }
+  }*/
   return true;
 }
 

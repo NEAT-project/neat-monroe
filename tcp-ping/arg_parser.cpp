@@ -22,7 +22,7 @@ void print_usage(void)
     "--interval=INTERVAL, -i INTERVAL  Interval in seconds between pings, default 1\n"
     "--timeout=TIMEOUT, -t TIMEOUT     Application timeout in seconds, deault no timeout\n"
     "--bind=IFNAME, -b IFNAME          Bind interface name\n"
-    "--verbose[=N], -v[vv]             Verbosity level 0,1,2 or 3\n"
+    "--verbose[=N], -v[vvv]             Verbosity level 0,1,2 or 3\n"
     "--help, -h                        Display this usage and exits\n"
     "--version, -V                     Display version number and exits\n";
 
@@ -59,11 +59,11 @@ void parse_args(int argc, char *argv[], struct app_config *cfg)
   cfg->count = 1;
   cfg->interval = 1;
   cfg->timeout = 0;
-  cfg->verbose = 1;
+  cfg->verbose = 0;
   cfg->bind_ifname = NULL;
   
   while(1) {
-    option = getopt_long(argc, argv, "p:m:n:i:b:vhV", long_options, &option_index);
+    option = getopt_long(argc, argv, "p:m:n:i:t:b:vhV", long_options, &option_index);
     if (option == -1) {
       break;
     }

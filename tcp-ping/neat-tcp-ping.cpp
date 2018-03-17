@@ -347,7 +347,7 @@ on_aborted(struct neat_flow_operations *ops)
 {
   struct flow_info *fi = (struct flow_info *)ops->userData;
 
-  log_debug(__FUNCTION__);
+  log_error(__FUNCTION__);
 
   fi->err = NEAT_ERROR_INTERNAL;
   neat_stop_event_loop(ops->ctx);
@@ -359,7 +359,7 @@ on_timeout(struct neat_flow_operations *ops)
 {
   struct flow_info *fi = (struct flow_info *)ops->userData;
 
-  log_debug(__FUNCTION__);
+  log_error(__FUNCTION__);
 
   fi->err = NEAT_ERROR_INTERNAL;
   neat_stop_event_loop(ops->ctx);
@@ -379,7 +379,7 @@ on_error(struct neat_flow_operations *ops)
 {
   struct flow_info *fi = (struct flow_info *)ops->userData;
 
-  log_debug(__FUNCTION__);
+  log_error(__FUNCTION__);
 
   fi->err = NEAT_ERROR_INTERNAL;
   neat_stop_event_loop(ops->ctx);

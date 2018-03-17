@@ -87,9 +87,10 @@ int check_app_timeout(struct flow_info *fi)
 }
 
 static neat_error_code
-tcp_ping_run_neat(struct neat_ctx *ctx, neat_flow_operations_fx on_connected_fx, struct flow_info *fi)
+tcp_ping_run_neat(neat_flow_operations_fx on_connected_fx, struct flow_info *fi)
 {
   neat_error_code err = NEAT_OK;
+  struct neat_ctx *ctx = NULL;
   struct neat_flow *flow = NULL;
   struct neat_flow_operations ops;
 
@@ -147,7 +148,7 @@ tcp_ping_run_neat(struct neat_ctx *ctx, neat_flow_operations_fx on_connected_fx,
   }
 
 cleanup:
-  if (err && ctx) {
+  if (ctx) {
     neat_free_ctx(ctx);
   }
 
@@ -158,28 +159,24 @@ static neat_error_code
 tcp_ping_run_connect(struct flow_info *fi)
 {
   neat_error_code err = NEAT_OK;
-  struct neat_ctx *ctx = NULL;
 
   fi->iter = 0;
-
   while(fi->iter < fi->cfg.count) {
+    if (fi->iter > 0) {
+      sleep(fi->cfg.interval);
+    }
+
     clock_gettime(CLOCK_REALTIME, &fi->ts1);
 
-    err = tcp_ping_run_neat(ctx, on_connected_connect, fi);
+    err = tcp_ping_run_neat(on_connected_connect, fi);
     if (err != NEAT_OK) {
       log_error("tcp_ping_run_neat failed");
-      goto cleanup;
+      break;
     }
 
     if (check_app_timeout(fi)) {
       break;
     }
-
-    sleep(fi->cfg.interval);
-  }
-cleanup:
-  if (ctx) {
-    neat_free_ctx(ctx);
   }
 
   return err;
@@ -189,20 +186,13 @@ static neat_error_code
 tcp_ping_run_echo(struct flow_info *fi)
 {
   neat_error_code err = NEAT_OK;
-  struct neat_ctx *ctx = NULL;
-
+  
   fi->iter = 0;
   clock_gettime(CLOCK_REALTIME, &fi->ts1);
 
-  err = tcp_ping_run_neat(ctx, on_connected_echo, fi);
+  err = tcp_ping_run_neat(on_connected_echo, fi);
   if (err != NEAT_OK) {
     log_error("tcp_ping_run_neat failed");
-    goto cleanup;
-  }
-
-cleanup:
-  if (ctx) {
-    neat_free_ctx(ctx);
   }
 
   return err;
@@ -274,8 +264,6 @@ on_readable(struct neat_flow_operations *ops)
   if (fi->iter >= fi->cfg.count || check_app_timeout(fi)) {
     neat_stop_event_loop(ops->ctx);
   } else {
-    sleep(fi->cfg.interval);
-
     ops->on_readable = NULL;
     ops->on_writable = on_writable;
     err = neat_set_operations(ops->ctx, ops->flow, ops);
@@ -298,6 +286,8 @@ on_writable(struct neat_flow_operations *ops)
   char buffer[] = "12345678901234567890123456789012345678901234567890123456789012\n";
 
   log_debug(__FUNCTION__);
+
+  sleep(fi->cfg.interval);
 
   clock_gettime(CLOCK_REALTIME, &fi->ts1);
 
@@ -412,7 +402,6 @@ int main(int argc, char *argv[])
     err = tcp_ping_run_connect(&fi);
     if (err != NEAT_OK) {
       log_error("tcp_ping_run_connect failed");
-      goto cleanup;
     }
   }
   else {
@@ -420,13 +409,7 @@ int main(int argc, char *argv[])
     err = tcp_ping_run_echo(&fi);
     if (err != NEAT_OK) {
       log_error("tcp_ping_run_echo failed");
-      goto cleanup;
     }
-  }
-
-cleanup:
-  if (fi.cfg.host) {
-    free(fi.cfg.host);
   }
 
   log_info("%s v%s terminated", APP_NAME, APP_VERSION);

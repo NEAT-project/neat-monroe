@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 project(tcp-ping)
 
-set(APP_VERSION "1.0.4")
+set(APP_VERSION "1.0.5")
 
 set(SRC_LIST tcp-ping.cpp arg_parser.cpp logger.cpp)
 add_executable(tcp-ping ${SRC_LIST})
@@ -18,7 +18,7 @@ install(TARGETS neat-tcp-ping RUNTIME DESTINATION /usr/local/bin)
 
 set(CPACK_GENERATOR "DEB")
 set(CPACK_PACKAGE_NAME ${PROJECT_NAME})
-set(CPACK_PACKAGE_VERSION "1.0.3")
+set(CPACK_PACKAGE_VERSION ${APP_VERSION})
 set(CPACK_PROJECT_SOURCE_DIR "${PROJECT_SOURCE_DIR}")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Tomasz Rozensztrauch <t.rozensztrauch@radytek.com>")
 set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")

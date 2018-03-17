@@ -74,7 +74,7 @@ int tcp_ping_connect(struct flow_info *fi)
     goto cleanup;
   }
 
-  if (fi->cfg.bind_ifname) {
+  if (strlen(fi->cfg.bind_ifname) > 0) {
     err = setsockopt(sockfd, SOL_SOCKET, SO_BINDTODEVICE,
       (void *)fi->cfg.bind_ifname, strlen(fi->cfg.bind_ifname));
     if (err) {
@@ -129,6 +129,10 @@ int tcp_ping_run_connect(struct flow_info *fi)
   fi->iter = 0;
 
   while(fi->iter < fi->cfg.count) {
+    if (fi->iter > 0) {
+      sleep(fi->cfg.interval);
+    }
+
     clock_gettime(CLOCK_REALTIME, &fi->ts1);
 
     sockfd = tcp_ping_connect(fi);
@@ -140,12 +144,11 @@ int tcp_ping_run_connect(struct flow_info *fi)
 
     print_rtt(fi, PING_MODE_CONNECT);
 
+    close(sockfd);
+
     if (check_app_timeout(fi)) {
       break;
     }
-
-    close(sockfd);
-    sleep(fi->cfg.interval);
   }
 
 cleanup:
@@ -176,6 +179,10 @@ int tcp_ping_run_echo(struct flow_info *fi)
   print_rtt(fi, PING_MODE_CONNECT);
 
   while(fi->iter < fi->cfg.count) {
+    // Wait interval seconds before next ping
+    // Note that first ping has already completed - connect ping
+    sleep(fi->cfg.interval);
+
     clock_gettime(CLOCK_REALTIME, &fi->ts1);
 
     // Send ping data to the echo server
@@ -200,9 +207,6 @@ int tcp_ping_run_echo(struct flow_info *fi)
     if (check_app_timeout(fi)) {
       break;
     }
-
-    // Wait interval seconds before next ping
-    sleep(fi->cfg.interval);
   }
 
 cleanup:
@@ -241,15 +245,6 @@ int main(int argc, char *argv[])
   else {
     log_debug("PING_MODE_ECHO");
     err = tcp_ping_run_echo(&fi);
-  }
-
-cleanup:
-  if (fi.cfg.host) {
-    free(fi.cfg.host);
-  }
-
-  if (fi.cfg.bind_ifname) {
-    free(fi.cfg.bind_ifname);
   }
 
   log_info("%s v%s terminated", APP_NAME, APP_VERSION);

@@ -239,7 +239,7 @@ on_readable(struct neat_flow_operations *ops)
   struct flow_info *fi = NULL;
   struct flow_info *peer_fi = NULL;
 
-  log_addr(ops, __FUNCTION__);
+  //log_addr(ops, __FUNCTION__);
 //  proxy = 
 //  peer = (struct flow_info *)((struct flow_info *)ops->userData)->ops->userData;
 
@@ -252,7 +252,7 @@ on_readable(struct neat_flow_operations *ops)
     goto error;
   }
 
-  fprintf(stderr, "INFO: on_readable - received %d bytes\n", peer_fi->num_of_bytes);
+  //fprintf(stderr, "INFO: on_readable - received %d bytes\n", peer_fi->num_of_bytes);
   //if (bytes_read > 0) {
   //  buffer[bytes_read] = 0;
   //  fprintf(stderr, "%s\n", buffer);
@@ -284,7 +284,7 @@ on_writable(struct neat_flow_operations *ops)
   neat_error_code err = NEAT_OK;
   struct flow_info *fi = NULL;
 
-  log_addr(ops, __FUNCTION__);
+  //log_addr(ops, __FUNCTION__);
 
   fi = (struct flow_info *)ops->userData;
   err = neat_write(ops->ctx, ops->flow, fi->buffer, fi->num_of_bytes, NULL, 0);
@@ -313,7 +313,7 @@ on_all_written(struct neat_flow_operations *ops)
   neat_error_code err = NEAT_OK;
   struct flow_info *fi = NULL;
   
-  log_addr(ops, __FUNCTION__);
+  //log_addr(ops, __FUNCTION__);
 
   ops->on_all_written = NULL;
   err = neat_set_operations(ops->ctx, ops->flow, ops);
@@ -420,7 +420,8 @@ int main(int argc, char *argv[])
     goto cleanup;
   }
 
-  neat_log_level(ctx, NEAT_LOG_DEBUG);
+  //neat_log_level(ctx, NEAT_LOG_DEBUG);
+  neat_log_level(ctx, NEAT_LOG_ERROR);
 
   flow = neat_new_flow(ctx);
   if (!flow) {

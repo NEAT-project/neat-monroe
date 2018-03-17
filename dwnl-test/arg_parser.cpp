@@ -52,14 +52,14 @@ void parse_args(int argc, char *argv[], struct app_config *cfg)
   int option = 0;
   int option_index = 0;
 
-  cfg->host = NULL;
+  memset(cfg->host, 0, DWNL_HOST_LEN);
   cfg->port = 80;
-  cfg->path = NULL;
+  memset(cfg->path, 0, DWNL_PATH_LEN);
   cfg->count = 1;
   cfg->interval = 1;
   cfg->timeout = 0;
   cfg->verbose = 0;
-  cfg->bind_ifname = NULL;
+  memset(cfg->bind_ifname, 0, DWNL_BIND_IFNAME_LEN);
   
   while(1) {
     option = getopt_long(argc, argv, "p:x:n:i:t:b:vhV", long_options, &option_index);
@@ -72,12 +72,7 @@ void parse_args(int argc, char *argv[], struct app_config *cfg)
         cfg->port = strtol(optarg, NULL, 10);
         break;
       case 'x':
-        if (cfg->path == NULL) {
-          cfg->path = strdup(optarg);
-        } else {
-          log_error("Path argument specified multiple times");
-          exit(-1);
-        }
+        snprintf(cfg->path, DWNL_PATH_LEN, "%s", optarg);
         break;
       case 'n':
         cfg->count = strtol(optarg, NULL, 10);
@@ -89,7 +84,7 @@ void parse_args(int argc, char *argv[], struct app_config *cfg)
         cfg->timeout = strtol(optarg, NULL, 10);
         break;
       case 'b':
-        cfg->bind_ifname = strdup(optarg);
+        snprintf(cfg->bind_ifname, DWNL_BIND_IFNAME_LEN, "%s", optarg);
         break;
       case 'v':
         cfg->verbose = optarg ? strtol(optarg, NULL, 10) : cfg->verbose + 1;
@@ -112,7 +107,7 @@ void parse_args(int argc, char *argv[], struct app_config *cfg)
   }
 
   if (optind < argc) {
-    cfg->host = strdup(argv[optind++]);
+    snprintf(cfg->host, DWNL_HOST_LEN, "%s", argv[optind++]);
   }
 
   if (optind < argc) {
@@ -120,12 +115,12 @@ void parse_args(int argc, char *argv[], struct app_config *cfg)
     exit(-1);
   }
 
-  if (!cfg->host) {
+  if (strlen(cfg->host) == 0) {
     log_error("Missing host argument");
     exit(-1);
   }
 
-  if (!cfg->path) {
-    cfg->path = strdup("/");
+  if (strlen(cfg->path) == 0) {
+    snprintf(cfg->path, DWNL_PATH_LEN, "/");
   }
 }

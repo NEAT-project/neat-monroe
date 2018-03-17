@@ -27,6 +27,7 @@ struct flow_info
   struct app_config cfg;
   int iter;
   struct timespec ts_app_start;
+  int timeout_fired;
   int len;
   char local_addr[LOCAL_ADDR_LEN];
   uint16_t local_port;
@@ -60,6 +61,7 @@ int check_app_timeout(struct flow_info *fi)
   if (fi->cfg.timeout > 0) {
     clock_gettime(CLOCK_REALTIME, &ts);
     if (ts.tv_sec - fi->ts_app_start.tv_sec > fi->cfg.timeout) {
+      fi->timeout_fired = 1;
       log_warning("App timeout reached");
       return 1;
     }
@@ -317,12 +319,20 @@ int main(int argc, char *argv[])
   clock_gettime(CLOCK_REALTIME, &fi.ts_app_start);
 
   fi.iter = 0;
-  while(fi.iter < fi.cfg.count) {
+  fi.timeout_fired = 0;
+  while(fi.iter < fi.cfg.count && !fi.timeout_fired) {
+    if (fi.iter > 0) {
+      sleep(fi.cfg.interval);
+      if (check_app_timeout(&fi)) {
+          break;
+      }
+    }
+
     fi.iter += 1;
     err = dwnl_test_run(&fi);
     if (err != NEAT_OK) {
       log_error("dwnl_test_run failed");
-      goto cleanup;
+      break;
     }
 
     if (fi.tsinit.tv_nsec < fi.ts1.tv_nsec) {
@@ -339,21 +349,6 @@ int main(int argc, char *argv[])
       fi.tsinit.tv_nsec - fi.ts1.tv_nsec,
       (long)(fi.ts2.tv_sec - fi.ts1.tv_sec),
       fi.ts2.tv_nsec - fi.ts1.tv_nsec);
-
-    if (check_app_timeout(&fi)) {
-        break;
-    }
-
-    sleep(fi.cfg.interval);
-  }
-
-cleanup:
-  if (fi.cfg.host) {
-    free(fi.cfg.host);
-  }
-
-  if (fi.cfg.path) {
-    free(fi.cfg.path);
   }
 
   log_info("%s v%s terminated", APP_NAME, APP_VERSION);

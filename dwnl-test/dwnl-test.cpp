@@ -41,6 +41,7 @@ int dwnl_test_run(struct flow_info *fi)
 
   sockfd = socket(AF_INET, SOCK_STREAM, 0);
   if (sockfd < 0) {
+    err = -1;
     fprintf(stderr, "ERROR: failed to create a socket\n");
     goto cleanup;
   }
@@ -57,6 +58,7 @@ int dwnl_test_run(struct flow_info *fi)
 
   he = gethostbyname(fi->cfg.host);
   if (!he) {
+    err = -1;
     fprintf(stderr, "ERROR: failed to resolve host name %s\n", fi->cfg.host);
     goto cleanup;
   }
@@ -92,6 +94,7 @@ int dwnl_test_run(struct flow_info *fi)
 
   len = send(sockfd, send_buffer, sizeof(send_buffer), 0);
   if (len != sizeof(send_buffer)) {
+    err = -1;
     fprintf(stderr, "ERROR: send failed\n");
     goto cleanup;
   }
@@ -100,6 +103,7 @@ int dwnl_test_run(struct flow_info *fi)
   while(1) {
     len = recv(sockfd, recv_buffer, sizeof(recv_buffer), 0);
     if (len < 0) {
+      err = -1;
       fprintf(stderr, "ERROR: recv failed\n");
       goto cleanup;
     } else if (len == 0) {

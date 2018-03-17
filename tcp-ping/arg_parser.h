@@ -8,6 +8,7 @@ struct app_config
   int mode;
   int count;
   int interval;
+  int timeout;
   int verbose;
   char *bind_ifname;
 };

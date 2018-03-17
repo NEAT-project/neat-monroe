@@ -11,6 +11,7 @@
 
 #include "version.h"
 #include "arg_parser.h"
+#include "logger.h"
 
 #define LOCAL_ADDR_LEN (32)
 
@@ -20,6 +21,7 @@ struct flow_info
   struct timespec ts2;
   struct app_config cfg;
   int iter;
+  struct timespec ts_app_start;
   char local_addr[LOCAL_ADDR_LEN];
   uint16_t local_port;
 };
@@ -42,6 +44,21 @@ void print_rtt(struct flow_info *fi, int mode)
     fi->ts2.tv_nsec - fi->ts1.tv_nsec);
 }
 
+int check_app_timeout(struct flow_info *fi)
+{
+  struct timespec ts;
+
+  if (fi->cfg.timeout > 0) {
+    clock_gettime(CLOCK_REALTIME, &ts);
+    if (ts.tv_sec - fi->ts_app_start.tv_sec > fi->cfg.timeout) {
+      log_warning("App timeout reached");
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
 int tcp_ping_connect(struct flow_info *fi)
 {
   int err = 0;
@@ -53,7 +70,7 @@ int tcp_ping_connect(struct flow_info *fi)
   sockfd = socket(AF_INET, SOCK_STREAM, 0);
   if (sockfd < 0) {
     err = -1;
-    fprintf(stderr, "ERROR: failed to create a socket. %s\n", strerror(errno));
+    log_error("Failed to create a socket. %s", strerror(errno));
     goto cleanup;
   }
 
@@ -61,7 +78,7 @@ int tcp_ping_connect(struct flow_info *fi)
     err = setsockopt(sockfd, SOL_SOCKET, SO_BINDTODEVICE,
       (void *)fi->cfg.bind_ifname, strlen(fi->cfg.bind_ifname));
     if (err) {
-      fprintf(stderr, "ERROR: binding to %s failed. %s\n",
+      log_error("Binding to %s failed. %s",
         fi->cfg.bind_ifname, strerror(errno));
       goto cleanup;
     }
@@ -70,7 +87,7 @@ int tcp_ping_connect(struct flow_info *fi)
   he = gethostbyname(fi->cfg.host);
   if (!he) {
     err = -1;
-    fprintf(stderr, "ERROR: failed to resolve host name %s\n", fi->cfg.host);
+    log_error("Failed to resolve host name %s", fi->cfg.host);
     goto cleanup;
   }
 
@@ -81,13 +98,13 @@ int tcp_ping_connect(struct flow_info *fi)
 
   err = connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
   if (err) {
-    fprintf(stderr, "ERROR: failed to connect to %s\n", fi->cfg.host);
+    log_error("Failed to connect to %s", fi->cfg.host);
     goto cleanup;
   }
 
   err = getsockname(sockfd, (struct sockaddr *)&local_addr, (socklen_t *)&len);
   if (err) {
-    fprintf(stderr, "ERROR: failed to obtain local socket address. %s\n", strerror(errno));
+    log_error("Failed to obtain local socket address. %s", strerror(errno));
     goto cleanup;
   }
   snprintf(fi->local_addr, LOCAL_ADDR_LEN, "%s", inet_ntoa(local_addr.sin_addr));
@@ -117,11 +134,15 @@ int tcp_ping_run_connect(struct flow_info *fi)
     sockfd = tcp_ping_connect(fi);
     if (sockfd < 0) {
       err = -1;
-      fprintf(stderr, "ERROR: %s - tcp_ping_connect failed\n", __FUNCTION__);
+      log_error("tcp_ping_connect failed");
       goto cleanup;
     }
 
     print_rtt(fi, PING_MODE_CONNECT);
+
+    if (check_app_timeout(fi)) {
+      break;
+    }
 
     close(sockfd);
     sleep(fi->cfg.interval);
@@ -148,7 +169,7 @@ int tcp_ping_run_echo(struct flow_info *fi)
   sockfd = tcp_ping_connect(fi);
   if (sockfd < 0) {
     err = -1;
-    fprintf(stderr, "ERROR: %s - tcp_ping_connect failed\n", __FUNCTION__);
+    log_error("tcp_ping_connect failed");
     goto cleanup;
   }
 
@@ -162,7 +183,7 @@ int tcp_ping_run_echo(struct flow_info *fi)
     if (len != sizeof(send_buffer))
     {
       err = -1;
-      fprintf(stderr, "ERROR: %s - send failed\n", __FUNCTION__);
+      log_error("send failed");
       goto cleanup;
     }
 
@@ -170,11 +191,15 @@ int tcp_ping_run_echo(struct flow_info *fi)
     len = recv(sockfd, recv_buffer, sizeof(recv_buffer), 0);
     if (len != sizeof(recv_buffer)) {
       err = -1;
-      fprintf(stderr, "ERROR: %s - recv failed\n", __FUNCTION__);
+      log_error("recv failed");
       goto cleanup;
     }
 
     print_rtt(fi, PING_MODE_ECHO);
+
+    if (check_app_timeout(fi)) {
+      break;
+    }
 
     // Wait interval seconds before next ping
     sleep(fi->cfg.interval);
@@ -192,19 +217,29 @@ int main(int argc, char *argv[])
 {
   int err = 0;
   struct flow_info fi;
-
-  fprintf(stderr, "INFO: %s started\n", APP_NAME);
-
   memset(&fi, 0, sizeof(struct flow_info));
 
   parse_args(argc, argv, &fi.cfg);
 
+  log_level(fi.cfg.verbose);
+  log_info("%s v%s started", APP_NAME, APP_VERSION);
+  log_info("Host %s", fi.cfg.host);
+  log_info("Port %d", fi.cfg.port);
+  log_info("Mode %s", fi.cfg.mode == PING_MODE_ECHO ? "ECHO" : "CONN");
+  log_info("Count %d", fi.cfg.count);
+  log_info("Interval %d", fi.cfg.interval);
+  log_info("Timeout %d", fi.cfg.timeout);
+  log_info("Bind %s", fi.cfg.bind_ifname);
+  log_info("Verbose %d", fi.cfg.verbose);
+
+  clock_gettime(CLOCK_REALTIME, &fi.ts_app_start);
+  
   if (fi.cfg.mode == PING_MODE_CONNECT) {
-    fprintf(stderr, "INFO: PING_MODE_CONNECT\n");
+    log_debug("PING_MODE_CONNECT");
     err = tcp_ping_run_connect(&fi);
   }
   else {
-    fprintf(stderr, "INFO: PING_MODE_ECHO\n");
+    log_debug("PING_MODE_ECHO");
     err = tcp_ping_run_echo(&fi);
   }
 
@@ -217,6 +252,6 @@ cleanup:
     free(fi.cfg.bind_ifname);
   }
 
-  fprintf(stderr, "INFO: %s terminated\n", APP_NAME);
+  log_info("%s v%s terminated", APP_NAME, APP_VERSION);
   return err;
 }

@@ -40,7 +40,6 @@ TCP_PING_MODE=`cat /monroe/config | jq -r .ping_mode`
 TCP_PING_COUNT=`cat /monroe/config | jq -r .ping_count`
 TCP_PING_INTERVAL=`cat /monroe/config | jq -r .ping_interval`
 TCP_PING_TIMEOUT=`cat /monroe/config | jq -r .ping_timeout`
-TCP_PING_BIND_IFNAME=`cat /monroe/config | jq -r .ping_bind_ifname`
 TCP_PING_VERBOSE=`cat /monroe/config | jq -r .ping_verbose`
 
 DWNL_TEST_SERVER=`cat /monroe/config | jq -r .dwnl_test_server`
@@ -49,8 +48,22 @@ DWNL_TEST_PATH=`cat /monroe/config | jq -r .dwnl_test_path`
 DWNL_TEST_COUNT=`cat /monroe/config | jq -r .dwnl_test_count`
 DWNL_TEST_INTERVAL=`cat /monroe/config | jq -r .dwnl_test_interval`
 DWNL_TEST_TIMEOUT=`cat /monroe/config | jq -r .dwnl_test_timeout`
-DWNL_TEST_BIND_IFNAME=`cat /monroe/config | jq -r .dwnl_test_bind_ifname`
 DWNL_TEST_VERBOSE=`cat /monroe/config | jq -r .dwnl_test_verbose`
+
+function get_default_iface {
+  IFS=$'\n'
+  for j in `ip rule list pref 91000`
+  do
+    TABLE=$(echo $j | tr "[:space:]" " " | cut -d " " -f 7)
+    DEFAULT_ROUTE=$(ip ro show table $TABLE | grep -m 1 "^default")
+    DEFAULT_IFACE=$(echo $DEFAULT_ROUTE | grep -o "dev [a-z0-9]*" | cut -d " " -f 2)
+    if [ "${DEFAULT_IFACE:0:2}" == "op" ]
+    then
+      echo "$DEFAULT_IFACE"
+      break
+    fi
+  done
+}
 
 function run_tcp_ping {
   sleep ${RUN_INTERVAL}
@@ -65,7 +78,7 @@ function run_tcp_ping {
     --count=${TCP_PING_COUNT} \
     --interval=${TCP_PING_INTERVAL} \
     --timeout=${TCP_PING_TIMEOUT} \
-    --bind=${TCP_PING_BIND_IFNAME} \
+    --bind=$(get_default_iface) \
     --verbose=${TCP_PING_VERBOSE} \
     ${TCP_PING_SERVER} \
     1>"${TMP_FNAME_STDOUT}" \
@@ -108,7 +121,7 @@ function run_dwnl_test {
     --count=${DWNL_TEST_COUNT} \
     --interval=${DWNL_TEST_INTERVAL} \
     --timeout=${DWNL_TEST_TIMEOUT} \
-    --bind=${DWNL_TEST_BIND_IFNAME} \
+    --bind=$(get_default_iface) \
     --verbose=${DWNL_TEST_VERBOSE} \
     ${DWNL_TEST_SERVER} \
     1>"${TMP_FNAME_STDOUT}" \
@@ -137,6 +150,8 @@ function run_neat_dwnl_test {
   mv ${TMP_FNAME_STDOUT} ${FNAME_STDOUT}
   mv ${TMP_FNAME_STDERR} ${FNAME_STDERR}
 }
+
+
 
 # Sleep for a while to let metadata-exporter produce some CIBs
 sleep ${RUN_INITIAL_WAIT}

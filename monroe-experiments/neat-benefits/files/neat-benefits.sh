@@ -1,5 +1,6 @@
 #!/bin/bash
 
+TS_START=`date +%s`
 DATE=`date +%Y%m%d-%H%M%S`
 RESULT_DIR="/monroe/results/"
 
@@ -30,6 +31,7 @@ export NEAT_PM_SOCKET="/var/run/neat/neat_pm_socket"
 RUN_COMMANDS=`cat /monroe/config | jq -r .run_commands`
 RUN_COUNT=`cat /monroe/config | jq -r .run_count`
 RUN_INTERVAL=`cat /monroe/config | jq -r .run_interval`
+RUN_TIMEOUT=`cat /monroe/config | jq -r .run_timeout`
 RUN_INITIAL_WAIT=`cat /monroe/config | jq -r .run_initial_wait`
 
 TCP_PING_SERVER=`cat /monroe/config | jq -r .ping_server`
@@ -37,6 +39,7 @@ TCP_PING_PORT=`cat /monroe/config | jq -r .ping_port`
 TCP_PING_MODE=`cat /monroe/config | jq -r .ping_mode`
 TCP_PING_COUNT=`cat /monroe/config | jq -r .ping_count`
 TCP_PING_INTERVAL=`cat /monroe/config | jq -r .ping_interval`
+TCP_PING_TIMEOUT=`cat /monroe/config | jq -r .ping_timeout`
 TCP_PING_BIND_IFNAME=`cat /monroe/config | jq -r .ping_bind_ifname`
 TCP_PING_VERBOSE=`cat /monroe/config | jq -r .ping_verbose`
 
@@ -45,6 +48,7 @@ DWNL_TEST_PORT=`cat /monroe/config | jq -r .dwnl_test_port`
 DWNL_TEST_PATH=`cat /monroe/config | jq -r .dwnl_test_path`
 DWNL_TEST_COUNT=`cat /monroe/config | jq -r .dwnl_test_count`
 DWNL_TEST_INTERVAL=`cat /monroe/config | jq -r .dwnl_test_interval`
+DWNL_TEST_TIMEOUT=`cat /monroe/config | jq -r .dwnl_test_timeout`
 DWNL_TEST_BIND_IFNAME=`cat /monroe/config | jq -r .dwnl_test_bind_ifname`
 DWNL_TEST_VERBOSE=`cat /monroe/config | jq -r .dwnl_test_verbose`
 
@@ -60,6 +64,7 @@ function run_tcp_ping {
     --mode=${TCP_PING_MODE} \
     --count=${TCP_PING_COUNT} \
     --interval=${TCP_PING_INTERVAL} \
+    --timeout=${TCP_PING_TIMEOUT} \
     --bind=${TCP_PING_BIND_IFNAME} \
     --verbose=${TCP_PING_VERBOSE} \
     ${TCP_PING_SERVER} \
@@ -81,6 +86,7 @@ function run_neat_tcp_ping {
     --mode=${TCP_PING_MODE} \
     --count=${TCP_PING_COUNT} \
     --interval=${TCP_PING_INTERVAL} \
+    --timeout=${TCP_PING_TIMEOUT} \
     --verbose=${TCP_PING_VERBOSE} \
     ${TCP_PING_SERVER} \
     1>"${TMP_FNAME_STDOUT}" \
@@ -101,6 +107,7 @@ function run_dwnl_test {
     --path=${DWNL_TEST_PATH} \
     --count=${DWNL_TEST_COUNT} \
     --interval=${DWNL_TEST_INTERVAL} \
+    --timeout=${DWNL_TEST_TIMEOUT} \
     --bind=${DWNL_TEST_BIND_IFNAME} \
     --verbose=${DWNL_TEST_VERBOSE} \
     ${DWNL_TEST_SERVER} \
@@ -122,6 +129,7 @@ function run_neat_dwnl_test {
     --path=${DWNL_TEST_PATH} \
     --count=${DWNL_TEST_COUNT} \
     --interval=${DWNL_TEST_INTERVAL} \
+    --timeout=${DWNL_TEST_TIMEOUT} \
     --verbose=${DWNL_TEST_VERBOSE} \
     ${DWNL_TEST_SERVER} \
     1>"${TMP_FNAME_STDOUT}" \
@@ -147,7 +155,13 @@ while [ $COUNT -lt ${RUN_COUNT} ]; do
     fi
   done
 
-  let COUNT=COUNT+1
+  if [ "${RUN_TIMEOUT}" != "null" -a "${RUN_TIMEOUT}" != "0" ]; then
+    if [ $((`date +%s` - ${TS_START})) -gt ${RUN_TIMEOUT} ]; then
+      break
+    fi
+  fi
+
+  COUNT=$((${COUNT} + 1))
 done
 
 #while true; do

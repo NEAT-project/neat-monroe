@@ -14,5 +14,6 @@ create table dwnl_test (
   dwnl_size integer default null,
   init_time double default null,
   total_time double default null,
+  m_ts datetime(6) default null,
   primary key (sched_id, run_tool, run_dtm, iter_nr)
 ) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;

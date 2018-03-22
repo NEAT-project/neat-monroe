@@ -12,5 +12,6 @@ create table tcp_ping (
   remote_port integer default null,
   ping_type varchar(16) default null,
   rtt double default null,
+  m_ts datetime(6) default null,
   primary key (sched_id, run_tool, run_dtm, iter_nr)
 ) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;

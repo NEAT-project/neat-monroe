@@ -4,6 +4,7 @@ create table metadata (
   node_id integer default null,
   seq_no integer default null,
   ts datetime(6) default null,
+  span double default null, 
   data_ver integer default null,
   data_id varchar(32) default null,
   iif_name varchar(16) default null,

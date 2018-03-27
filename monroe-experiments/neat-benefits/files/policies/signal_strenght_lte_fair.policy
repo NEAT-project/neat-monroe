@@ -1,0 +1,16 @@
+{
+  "uid": "signal_strength_lte_fair",
+  "priority": 3,
+  "description": "Score connections with FAIR signal (LTE)",
+  "policy_type": "policy",
+  "replace_matched": false,
+  "match" : {
+      "device_mode": { "value": 5 },
+      "lte_rsrp": {"value": {"start": -111, "end": -103}},
+      "lte_rsrq": {"value": {"start": -11, "end": -8}}
+  },
+  "properties": {
+      "lte_rsrp": {"value": {"start": -111, "end": -103}, "precedence": 2, "score": 10},
+      "lte_rsrq": {"value": {"start": -11, "end": -8}, "precedence": 2, "score": 5}
+  }
+}

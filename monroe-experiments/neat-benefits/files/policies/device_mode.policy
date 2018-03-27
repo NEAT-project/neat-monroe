@@ -9,7 +9,7 @@
   },
   "properties":[
     [
-      {"device_mode": { "value": 3, "precedence": 2, "score": 1 }},
+      {"device_mode": { "value": 3, "precedence": 2, "score": 0 }},
       {"device_mode": { "value": 4, "precedence": 2, "score": 10 }},
       {"device_mode": { "value": 5, "precedence": 2, "score": 20 }}
     ]

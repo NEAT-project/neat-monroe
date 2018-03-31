@@ -68,7 +68,7 @@ def process_metadata(db_conn, exp_id, sched_id, node_id):
     """
 
   rows = []
-  prev_ts = {}
+  row_cache = {}
   for fpath, dtm in get_matching_files(sched_id, 'metadata-exporter'):
     with open(fpath) as f:
       for line in f:
@@ -76,12 +76,15 @@ def process_metadata(db_conn, exp_id, sched_id, node_id):
           continue
 
         me = json.loads(line)
+        iif_name=me['InternalInterface']
+        ts=me['Timestamp']
 
-        iif_name=me['InternalInterface'] # me.get('InternalInterface', None),
-        ts=me['Timestamp'] #me.get('Timestamp', None)
-
-        span = ts - prev_ts[iif_name] if iif_name in prev_ts else 0.0
-        prev_ts[iif_name] = ts
+        if iif_name in row_cache:
+         row = row_cache[iif_name]
+         prev_ts = getattr(row,'ts')
+         span = ts - prev_ts
+         row = row._replace(span=span)
+         rows.append(row)
 
         row = metadata(
           exp_id=exp_id,
@@ -89,7 +92,7 @@ def process_metadata(db_conn, exp_id, sched_id, node_id):
           node_id=node_id,
           seq_no=me.get('SequenceNumber', None),
           ts=ts,
-          span=span,
+          span=0.0,
           data_ver=me.get('DataVersion', None),
           data_id=me.get('DataId', None),
           iif_name=iif_name,
@@ -115,6 +118,8 @@ def process_metadata(db_conn, exp_id, sched_id, node_id):
           pci=me.get('PCI', None)
         )
 
+        row_cache[iif_name] = row
+
         iif_name = getattr(row,'iif_name')
         imsimccmnc = getattr(row, 'imsimccmnc')
         if iif_name is not None and imsimccmnc is not None:
@@ -124,7 +129,8 @@ def process_metadata(db_conn, exp_id, sched_id, node_id):
             raise RuntimeError('Detected imsimccmnc change %s %s %s ' %
               (sched_id, iif_name, imsimccmnc))
 
-        rows.append(row)
+  for row in row_cache.itervalues():
+    rows.append(row)
 
   cursor = db_conn.cursor()
   cursor.executemany(sql, rows)

@@ -1,5 +1,4 @@
-create or replace view v_metadata as
-select
+create or replace view v_metadata as select
   m.*,
   case m.dev_mode
     when 0 then 'UNKNOWN'
@@ -11,9 +10,9 @@ select
     else '?'
   end as device_mode,
   case 
-    when (m.dev_mode = 5 and m.lte_rsrp >= -84 and m.lte_rsrq >= -5) or
+    when (m.dev_mode = 5 and m.lte_rsrq >= -7 and m.lte_rsrp >= -102) or
          (m.dev_mode in (4,3) and m.rssi >= -69) then 'GOOD'
-    when (m.dev_mode = 5 and m.lte_rsrp >= -111 and m.lte_rsrq >= -10) or
+    when (m.dev_mode = 5 and m.lte_rsrq >= -11 and m.lte_rsrp >= -111) or
          (m.dev_mode in (4,3) and m.rssi >= -94) then 'FAIR'
     else 'POOR'
   end as signal_quality
@@ -21,12 +20,8 @@ from
   metadata m
 ;
 
-create or replace view v_tool_metadata as
-select 
-  t.exp_id,
-  t.sched_id,
-  t.node_id,
-  t.run_tool,
+create or replace view v_tcp_ping as select
+  t.*,
   m.dev_mode,
   m.rssi,
   m.lte_rsrq,
@@ -41,22 +36,19 @@ select
     else '?'
   end as device_mode,
   case 
-    when (m.dev_mode = 5 and m.lte_rsrp >= -84 and m.lte_rsrq >= -5) or
+    when (m.dev_mode = 5 and m.lte_rsrq >= -7 and m.lte_rsrp >= -102) or
          (m.dev_mode in (4,3) and m.rssi >= -69) then 'GOOD'
-    when (m.dev_mode = 5 and m.lte_rsrp >= -111 and m.lte_rsrq >= -10) or
+    when (m.dev_mode = 5 and m.lte_rsrq >= -11 and m.lte_rsrp >= -111) or
          (m.dev_mode in (4,3) and m.rssi >= -94) then 'FAIR'
     else 'POOR'
   end as signal_quality
 from
   tcp_ping t
   left join metadata m on t.sched_id = m.sched_id and t.m_ts = m.ts
-where
-  t.iter_nr = 1
-union all select 
-  t.exp_id,
-  t.sched_id,
-  t.node_id,
-  t.run_tool,
+;
+
+create or replace view v_dwnl_test as select 
+  t.*,
   m.dev_mode,
   m.rssi,
   m.lte_rsrq,
@@ -69,17 +61,15 @@ union all select
     when 4 then '3G'
     when 5 then 'LTE'
     else '?'
-  end,
+  end as device_mode,
   case 
-    when (m.dev_mode = 5 and m.lte_rsrp >= -84 and m.lte_rsrq >= -5) or
+    when (m.dev_mode = 5 and m.lte_rsrq >= -7 and m.lte_rsrp >= -102) or
          (m.dev_mode in (4,3) and m.rssi >= -69) then 'GOOD'
-    when (m.dev_mode = 5 and m.lte_rsrp >= -111 and m.lte_rsrq >= -10) or
+    when (m.dev_mode = 5 and m.lte_rsrq >= -11 and m.lte_rsrp >= -111) or
          (m.dev_mode in (4,3) and m.rssi >= -94) then 'FAIR'
     else 'POOR'
-  end
-from
+  end as signal_quality
+ from
   dwnl_test t
   left join metadata m on t.sched_id = m.sched_id and t.m_ts = m.ts
-where
-  t.iter_nr = 1
 ;

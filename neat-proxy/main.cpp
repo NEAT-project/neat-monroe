@@ -363,7 +363,10 @@ on_close(struct neat_flow_operations *ops)
   // Close peer flow and free flow info memory
   fi = (struct flow_info *)ops->userData;
   if (fi) {
-    neat_close(fi->peer_ops->ctx, fi->peer_ops->flow);
+    if (fi->peer_ops) {
+      ((struct flow_info *)fi->peer_ops->userData)->peer_ops = NULL;
+      neat_close(fi->peer_ops->ctx, fi->peer_ops->flow);
+    }
     free(fi->buffer);
     free(fi);
   }
@@ -392,7 +395,10 @@ on_error(struct neat_flow_operations *ops)
   // Close peer flow and free flow info memory
   fi = (struct flow_info *)ops->userData;
   if (fi) {
-    neat_close(fi->peer_ops->ctx, fi->peer_ops->flow);
+    if (fi->peer_ops) {
+      ((struct flow_info *)fi->peer_ops->userData)->peer_ops = NULL;
+      neat_close(fi->peer_ops->ctx, fi->peer_ops->flow);
+    }
     free(fi->buffer);
     free(fi);
   }
